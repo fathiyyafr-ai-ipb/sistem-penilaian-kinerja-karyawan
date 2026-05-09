@@ -148,6 +148,6 @@ Frontend berjalan di: http://localhost:3000
 
 - **Frontend**: React 18 + Vite + Tailwind CSS + Recharts
 - **Backend**: Node.js + Express.js
-- **Database**: MySQL 8
+- **Database**: Postgre
 - **Auth**: JWT + bcrypt
 - **Upload**: Multer
