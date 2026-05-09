@@ -63,9 +63,12 @@ const createActivity = async (req, res) => {
     const { title, description, deadline, team_id, assigned_to } = req.body;
     const created_by = req.user.id;
 
+    const final_team_id = team_id || null;
+    const final_assigned_to = assigned_to || null;
+
     const [result] = await db.query(
       'INSERT INTO activities (title, description, deadline, created_by, team_id, assigned_to) VALUES (?, ?, ?, ?, ?, ?)',
-      [title, description, deadline, created_by, team_id, assigned_to]
+      [title, description, deadline, created_by, final_team_id, final_assigned_to]
     );
 
     res.status(201).json({ message: 'Kegiatan berhasil dibuat', id: result.insertId });
@@ -93,9 +96,12 @@ const updateActivity = async (req, res) => {
       return res.status(403).json({ message: 'Akses ditolak.' });
     }
 
+    const final_team_id = team_id || null;
+    const final_assigned_to = assigned_to || null;
+
     await db.query(
       'UPDATE activities SET title=?, description=?, deadline=?, status=?, assigned_to=?, team_id=? WHERE id=?',
-      [title, description, deadline, status, assigned_to, team_id, id]
+      [title, description, deadline, status, final_assigned_to, final_team_id, id]
     );
 
     res.json({ message: 'Kegiatan berhasil diperbarui' });
