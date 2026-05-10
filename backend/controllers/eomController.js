@@ -65,8 +65,10 @@ const getRanking = async (req, res) => {
         avg_contribution   DESC
     `, [period]);
 
+    console.log(`Ranking results for ${period}:`, rows.length);
     res.json(rows);
   } catch (err) {
+    console.error('Error in getRanking:', err);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
