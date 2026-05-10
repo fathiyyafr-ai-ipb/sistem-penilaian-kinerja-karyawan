@@ -86,4 +86,65 @@ const validateFinal = async (req, res) => {
   }
 };
 
-module.exports = { getReviews, createStage1, createStage2, validateFinal };
+const deleteReview = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [rev] = await db.query('SELECT reviewer_id FROM performance_reviews WHERE id = ?', [id]);
+    if (!rev.length) return res.status(404).json({ message: 'Penilaian tidak ditemukan' });
+
+    if (rev[0].reviewer_id !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Akses ditolak.' });
+    }
+
+    await db.query('DELETE FROM performance_reviews WHERE id = ?', [id]);
+    res.json({ message: 'Penilaian berhasil dihapus' });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+const updateReview = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { speed_score, quality_score, contribution_score, discipline_score, notes, periode } = req.body;
+
+    const [rev] = await db.query('SELECT * FROM performance_reviews WHERE id = ?', [id]);
+    if (!rev.length) return res.status(404).json({ message: 'Penilaian tidak ditemukan' });
+
+    if (rev[0].reviewer_id !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Akses ditolak.' });
+    }
+
+    let total = rev[0].total_score;
+    if (rev[0].stage === 1) {
+      total = ((+speed_score + +quality_score + +contribution_score) / 3).toFixed(2);
+      await db.query(`
+        UPDATE performance_reviews 
+        SET speed_score=?, quality_score=?, contribution_score=?, total_score=?, notes=?, periode=?
+        WHERE id=?
+      `, [speed_score, quality_score, contribution_score, total, notes, periode, id]);
+    } else {
+      // Untuk stage 2, kita perlu nilai stage 1
+      const [stage1] = await db.query(
+        "SELECT total_score FROM performance_reviews WHERE user_id=? AND stage=1 AND periode=?",
+        [rev[0].user_id, periode]
+      );
+      if (stage1.length) {
+        total = (stage1[0].total_score * 0.7 + +discipline_score * 0.3).toFixed(2);
+      } else {
+        total = (+discipline_score).toFixed(2);
+      }
+      await db.query(`
+        UPDATE performance_reviews 
+        SET discipline_score=?, total_score=?, notes=?, periode=?
+        WHERE id=?
+      `, [discipline_score, total, notes, periode, id]);
+    }
+
+    res.json({ message: 'Penilaian berhasil diperbarui' });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+module.exports = { getReviews, createStage1, createStage2, validateFinal, updateReview, deleteReview };

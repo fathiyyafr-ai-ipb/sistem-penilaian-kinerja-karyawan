@@ -38,6 +38,15 @@ app.get('/', (req, res) => {
   res.json({ message: 'API BPS Kinerja Pegawai berjalan!', version: '1.0.0' });
 });
 
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error('Unhandled Error:', err.message);
+  res.status(err.status || 500).json({
+    message: err.message || 'Terjadi kesalahan pada server',
+    error: process.env.NODE_ENV === 'development' ? err : {}
+  });
+});
+
 // Jalankan server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

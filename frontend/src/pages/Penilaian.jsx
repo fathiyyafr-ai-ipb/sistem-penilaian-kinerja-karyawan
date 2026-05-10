@@ -21,6 +21,7 @@ export default function Penilaian() {
   const [periode, setPeriode]       = useState('');
   const [showModal, setShowModal]   = useState(false);
   const [form, setForm]             = useState(emptyForm);
+  const [editingId, setEditingId]   = useState(null);
 
   const isKetuaTim = user?.role === 'ketua_tim';
   const isKasubag  = user?.role === 'kasubag';
@@ -40,13 +41,42 @@ export default function Penilaian() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const endpoint = isKetuaTim ? '/reviews/stage1' : '/reviews/stage2';
-      await api.post(endpoint, { ...form, periode: form.periode || new Date().toISOString().slice(0, 7) });
+      if (editingId) {
+        await api.put(`/reviews/${editingId}`, form);
+      } else {
+        const endpoint = isKetuaTim ? '/reviews/stage1' : '/reviews/stage2';
+        await api.post(endpoint, { ...form, periode: form.periode || new Date().toISOString().slice(0, 7) });
+      }
       setShowModal(false);
       setForm(emptyForm);
+      setEditingId(null);
       fetchData();
     } catch (err) {
       alert(err.response?.data?.message || 'Gagal menyimpan penilaian');
+    }
+  };
+
+  const handleEdit = (r) => {
+    setEditingId(r.id);
+    setForm({
+      user_id: r.user_id,
+      speed_score: r.speed_score || '',
+      quality_score: r.quality_score || '',
+      contribution_score: r.contribution_score || '',
+      discipline_score: r.discipline_score || '',
+      notes: r.notes || '',
+      periode: r.periode || ''
+    });
+    setShowModal(true);
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm('Hapus penilaian ini?')) return;
+    try {
+      await api.delete(`/reviews/${id}`);
+      fetchData();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Gagal menghapus penilaian');
     }
   };
 
@@ -108,7 +138,7 @@ export default function Penilaian() {
               className="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-300" />
           </div>
           {(isKetuaTim || isKasubag) && (
-            <button onClick={() => { setShowModal(true); setForm(emptyForm); }}
+            <button onClick={() => { setShowModal(true); setForm(emptyForm); setEditingId(null); }}
               className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm transition">
               <Plus className="w-4 h-4" />
               {isKetuaTim ? 'Nilai Tahap 1' : 'Nilai Tahap 2'}
@@ -159,10 +189,10 @@ export default function Penilaian() {
                       )}
                       {!isPegawai && (
                         <>
-                          <button className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition">
+                          <button onClick={() => handleEdit(r)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition">
                             <Pencil className="w-4 h-4" />
                           </button>
-                          <button className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition">
+                          <button onClick={() => handleDelete(r.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition">
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </>
@@ -183,7 +213,9 @@ export default function Penilaian() {
       {showModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
-            <h3 className="font-bold text-lg mb-4">{isKetuaTim ? 'Penilaian Tahap 1' : 'Penilaian Tahap 2'}</h3>
+            <h3 className="font-bold text-lg mb-4">
+              {editingId ? 'Edit Penilaian' : (isKetuaTim ? 'Penilaian Tahap 1' : 'Penilaian Tahap 2')}
+            </h3>
             <form onSubmit={handleSubmit} className="space-y-3">
               <div>
                 <label className="text-xs font-medium text-gray-600">Pegawai *</label>

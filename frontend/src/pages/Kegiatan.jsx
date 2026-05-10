@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
-import { Eye, Upload, Plus, Users, FileText, CheckCircle, Clock } from 'lucide-react';
+import { Eye, Upload, Plus, Users, FileText, CheckCircle, Clock, Pencil, Trash2 } from 'lucide-react';
 
 export default function Kegiatan() {
   const { user }                          = useAuth();
@@ -15,6 +15,7 @@ export default function Kegiatan() {
   const [monitoringData, setMonitoringData] = useState([]);
   const [form, setForm]                   = useState({ title: '', description: '', deadline: '', team_id: '', assigned_to: '' });
   const [progressForm, setProgressForm]   = useState({ activity_id: '', progress_percentage: '', notes: '', file: null });
+  const [editingId, setEditingId]         = useState(null);
   const [loadingMonitoring, setLoadingMonitoring] = useState(false);
 
   const fetchData = async () => {
@@ -29,11 +30,36 @@ export default function Kegiatan() {
   const handleCreate = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/activities', form);
+      if (editingId) {
+        await api.put(`/activities/${editingId}`, form);
+      } else {
+        await api.post('/activities', form);
+      }
       setShowModal(false);
+      setEditingId(null);
       setForm({ title: '', description: '', deadline: '', team_id: '', assigned_to: '' });
       fetchData();
-    } catch (err) { alert(err.response?.data?.message || 'Gagal membuat kegiatan'); }
+    } catch (err) { alert(err.response?.data?.message || 'Gagal menyimpan kegiatan'); }
+  };
+
+  const handleEdit = (act) => {
+    setEditingId(act.id);
+    setForm({
+      title: act.title,
+      description: act.description || '',
+      deadline: act.deadline ? new Date(act.deadline).toISOString().split('T')[0] : '',
+      team_id: act.team_id || '',
+      assigned_to: act.assigned_to || ''
+    });
+    setShowModal(true);
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm('Hapus kegiatan ini?')) return;
+    try {
+      await api.delete(`/activities/${id}`);
+      fetchData();
+    } catch (err) { alert(err.response?.data?.message || 'Gagal menghapus kegiatan'); }
   };
 
   const handleProgressUpdate = async (e) => {
@@ -92,7 +118,7 @@ export default function Kegiatan() {
             className="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-300" />
         </div>
         {isKetuaTim && (
-          <button onClick={() => setShowModal(true)}
+          <button onClick={() => { setShowModal(true); setEditingId(null); setForm({ title: '', description: '', deadline: '', team_id: '', assigned_to: '' }); }}
             className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm transition">
             <Plus className="w-4 h-4" /> Buat Kegiatan
           </button>
@@ -153,11 +179,30 @@ export default function Kegiatan() {
                       </button>
                     )}
                     {(isKetuaTim || user?.role === 'admin' || user?.role === 'kepala_bps') && (
-                      <button 
-                        onClick={() => handleShowMonitoring(act)}
-                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition shadow-sm border border-transparent hover:border-blue-100 bg-white">
-                        <Eye className="w-4 h-4" />
-                      </button>
+                      <>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleShowMonitoring(act); }}
+                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition shadow-sm border border-transparent hover:border-blue-100 bg-white"
+                          title="Monitoring">
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        {(isKetuaTim || user?.role === 'admin') && (
+                          <>
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); handleEdit(act); }}
+                              className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-full transition shadow-sm border border-transparent hover:border-green-100 bg-white"
+                              title="Edit">
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); handleDelete(act.id); }}
+                              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition shadow-sm border border-transparent hover:border-red-100 bg-white"
+                              title="Hapus">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
+                      </>
                     )}
                   </div>
                 </td>
@@ -174,7 +219,7 @@ export default function Kegiatan() {
       {showModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl border border-gray-100">
-            <h3 className="font-bold text-xl mb-6 text-gray-800">Buat Kegiatan Baru</h3>
+            <h3 className="font-bold text-xl mb-6 text-gray-800">{editingId ? 'Edit Kegiatan' : 'Buat Kegiatan Baru'}</h3>
             <form onSubmit={handleCreate} className="space-y-4">
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Judul Kegiatan</label>

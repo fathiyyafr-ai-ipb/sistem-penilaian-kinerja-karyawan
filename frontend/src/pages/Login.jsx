@@ -32,7 +32,7 @@ export default function Login() {
         <div className="w-2/5 bg-blue-700 p-10 flex flex-col justify-between text-white">
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 bg-white rounded flex items-center justify-center p-1">
-              <img src="/logo-bps.png" alt="Logo BPS" className="w-full h-full object-contain" />
+              <img src="/bpspanjang.png" alt="Logo BPS" className="w-full h-full object-contain" />
             </div>
             <div>
               <p className="font-bold text-sm leading-tight">BADAN PUSAT STATISTIK</p>
@@ -49,7 +49,7 @@ export default function Login() {
         {/* Panel kanan */}
         <div className="w-3/5 bg-blue-100 p-10 flex flex-col items-center justify-center">
           <div className="bg-white rounded-full w-16 h-16 flex items-center justify-center shadow mb-6 p-2">
-            <img src="/logo-bps.png" alt="Logo BPS" className="w-full h-full object-contain" />
+            <img src="/bpspanjang.png" alt="Logo BPS" className="w-full h-full object-contain" />
           </div>
 
           <form onSubmit={handleSubmit} className="w-full max-w-xs space-y-4">

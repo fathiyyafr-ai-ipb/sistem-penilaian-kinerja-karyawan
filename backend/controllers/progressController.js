@@ -4,8 +4,11 @@ const path   = require('path');
 
 // Konfigurasi penyimpanan file upload
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => { cb(null, './uploads/'); },
-  filename:    (req, file, cb) => {
+  destination: (req, file, cb) => {
+    // Gunakan path absolute agar tidak tergantung CWD
+    cb(null, path.join(__dirname, '../uploads/'));
+  },
+  filename: (req, file, cb) => {
     const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname)}`;
     cb(null, unique);
   }
@@ -15,9 +18,13 @@ const upload = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024 }, // maks 10 MB
   fileFilter: (req, file, cb) => {
-    const allowed = ['.pdf', '.doc', '.docx', '.xlsx', '.jpg', '.png'];
-    if (allowed.includes(path.extname(file.originalname).toLowerCase())) cb(null, true);
-    else cb(new Error('Format file tidak diizinkan'));
+    const allowed = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.jpg', '.jpeg', '.png', '.zip', '.rar'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowed.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Format file tidak diizinkan. Gunakan PDF, Doc, Excel, JPG, PNG, atau ZIP/RAR.'));
+    }
   }
 });
 

@@ -25,7 +25,7 @@ export default function Layout({ children }) {
           {/* Logo */}
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white rounded flex items-center justify-center p-1">
-              <img src="/logo-bps.png" alt="Logo BPS" className="w-full h-full object-contain" />
+              <img src="/bpspanjang.png" alt="Logo BPS" className="w-full h-full object-contain" />
             </div>
             <div>
               <p className="font-bold text-sm leading-tight">BADAN PUSAT STATISTIK</p>
@@ -84,7 +84,7 @@ export default function Layout({ children }) {
           {/* Logo bawah */}
           <div className="absolute bottom-6 left-4">
             <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center p-1">
-              <img src="/logo-bps.png" alt="Logo BPS" className="w-full h-full object-contain" />
+              <img src="/bpspanjang.png" alt="Logo BPS" className="w-full h-full object-contain" />
             </div>
           </div>
         </aside>
