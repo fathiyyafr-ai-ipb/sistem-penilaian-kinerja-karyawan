@@ -38,6 +38,7 @@ INSERT INTO attendance (user_id, hadir, terlambat, pulang_cepat, hadir_rapat, ha
 (6, 20, 2, 0, 3, 2, '2025-05'),
 (7, 21, 1, 0, 2, 1, '2025-05');
 
-INSERT INTO performance_reviews (user_id, reviewer_id, stage, speed_score, quality_score, contribution_score, total_score, notes, status, periode) VALUES
-(2, 3, 1, 85, 88, 82, 85.00,  'Kinerja baik, perlu peningkatan kecepatan', 'submitted', '2025-05'),
-(6, 3, 1, 78, 80, 75, 77.67,  'Cukup baik, perlu bimbingan lebih',         'submitted', '2025-05');
+INSERT INTO performance_reviews (user_id, reviewer_id, speed_score, quality_score, contribution_score, responsibility_score, total_score, reviewer_notes, status, periode) VALUES
+(2, 3, 85, 88, 82, 90, 86.25, 'Kinerja baik, perlu peningkatan kecepatan', 'menunggu_validasi', '2025-05'),
+(6, 3, 78, 80, 75, 82, 78.75, 'Cukup baik, perlu bimbingan lebih',         'menunggu_validasi', '2025-05'),
+(7, 4, 72, 76, 70, 74, 73.00, 'Kinerja standar, disiplin masih perlu ditingkatkan', 'tervalidasi', '2025-05');

@@ -74,20 +74,24 @@ CREATE TABLE attendance (
 
 CREATE TABLE performance_reviews (
   id SERIAL PRIMARY KEY,
-  user_id INT NOT NULL,
-  reviewer_id INT NOT NULL,
-  stage SMALLINT NOT NULL,
-  speed_score DECIMAL(5,2),
-  quality_score DECIMAL(5,2),
-  contribution_score DECIMAL(5,2),
-  discipline_score DECIMAL(5,2),
-  total_score DECIMAL(5,2),
-  notes TEXT,
-  status VARCHAR(20) DEFAULT 'draft' CHECK (status IN ('draft','submitted','validated')),
+  user_id INT NOT NULL,              -- pegawai yang dinilai
+  reviewer_id INT NOT NULL,          -- ketua_tim / kasubag yang menilai
+  speed_score DECIMAL(5,2),          -- Kecepatan Pengerjaan (0-100)
+  quality_score DECIMAL(5,2),        -- Kualitas Pekerjaan (0-100)
+  contribution_score DECIMAL(5,2),   -- Kontribusi Tim (0-100)
+  responsibility_score DECIMAL(5,2), -- Tanggung Jawab (0-100)
+  total_score DECIMAL(5,2),          -- Rata-rata 4 komponen
+  reviewer_notes TEXT,               -- Catatan dari penilai (atasan)
+  kepala_notes TEXT,                 -- Catatan revisi dari Kepala BPS
+  status VARCHAR(30) DEFAULT 'menunggu_validasi'
+    CHECK (status IN ('menunggu_validasi', 'tervalidasi')),
+  validated_by INT,                  -- id kepala_bps yang memvalidasi
+  validated_at TIMESTAMP,
   periode VARCHAR(20),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  FOREIGN KEY (reviewer_id) REFERENCES users(id) ON DELETE CASCADE
+  FOREIGN KEY (reviewer_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (validated_by) REFERENCES users(id) ON DELETE SET NULL
 );
 
 CREATE TABLE employee_of_month (

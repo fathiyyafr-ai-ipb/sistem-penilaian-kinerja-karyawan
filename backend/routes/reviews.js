@@ -1,13 +1,60 @@
 const express = require('express');
 const router  = express.Router();
-const { getReviews, createStage1, createStage2, validateFinal, updateReview, deleteReview } = require('../controllers/reviewController');
+const {
+  getReviews,
+  getSubordinates,
+  createReview,
+  updateReview,
+  deleteReview,
+  validateReview,
+  validateBulk
+} = require('../controllers/reviewController');
 const { verifyToken, authorize } = require('../middleware/auth');
 
-router.get('/',          verifyToken, getReviews);
-router.post('/stage1',   verifyToken, authorize('ketua_tim', 'admin'), createStage1);
-router.post('/stage2',   verifyToken, authorize('kasubag', 'admin'),   createStage2);
-router.put('/:id',       verifyToken, authorize('ketua_tim', 'kasubag', 'admin'), updateReview);
-router.delete('/:id',    verifyToken, authorize('ketua_tim', 'kasubag', 'admin'), deleteReview);
-router.post('/validate', verifyToken, authorize('kepala_bps', 'admin'), validateFinal);
+// Daftar pegawai yang bisa dinilai oleh penilai yg login
+router.get('/subordinates',
+  verifyToken,
+  authorize('ketua_tim', 'kasubag', 'admin'),
+  getSubordinates
+);
+
+// Ambil semua/sebagian penilaian (filter otomatis berdasarkan role di controller)
+router.get('/',
+  verifyToken,
+  getReviews
+);
+
+// Buat penilaian baru
+router.post('/',
+  verifyToken,
+  authorize('ketua_tim', 'kasubag', 'admin'),
+  createReview
+);
+
+// Edit penilaian (akses & aturan diperiksa di dalam controller)
+router.put('/:id',
+  verifyToken,
+  updateReview
+);
+
+// Hapus penilaian
+router.delete('/:id',
+  verifyToken,
+  deleteReview
+);
+
+// Validasi satu penilaian oleh Kepala BPS
+router.post('/:id/validate',
+  verifyToken,
+  authorize('kepala_bps', 'admin'),
+  validateReview
+);
+
+// Validasi banyak penilaian sekaligus (bulk)
+router.post('/validate-bulk',
+  verifyToken,
+  authorize('kepala_bps', 'admin'),
+  validateBulk
+);
 
 module.exports = router;
