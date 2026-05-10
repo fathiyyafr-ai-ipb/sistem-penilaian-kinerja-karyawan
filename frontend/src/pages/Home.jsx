@@ -48,7 +48,7 @@ export default function Home() {
         setActivities(aRes.data.slice(0, 3));
         setProgress(pRes.data);
         setAttendance(attRes.data[0] || null);
-        setEom(eomRes.data.find(e => e.user_id === user?.id) || null);
+        setEom(eomRes.data[0] || null); // ambil peringkat 1
       } catch (err) {
         console.error(err);
       } finally {
@@ -146,19 +146,33 @@ export default function Home() {
 
           {/* Employee of Month */}
           <div className="bg-white rounded-xl p-4 shadow-sm">
-            <h3 className="font-semibold text-gray-700 mb-3">Employee of the Month</h3>
+            <h3 className="font-semibold text-gray-700 mb-3">🏆 Employee of the Month</h3>
             <div className="flex flex-col items-center">
               <div className="relative">
-                <div className="w-14 h-14 bg-gray-300 rounded-full flex items-center justify-center text-gray-600 font-bold">
-                  {eom ? user?.name?.charAt(0) : '?'}
+                <div className={`w-14 h-14 rounded-full flex items-center justify-center font-bold text-lg ${
+                  eom ? 'bg-gradient-to-br from-yellow-400 to-amber-500 text-white shadow-lg shadow-yellow-200'
+                       : 'bg-gray-200 text-gray-500'
+                }`}>
+                  {eom ? eom.name?.charAt(0) : '?'}
                 </div>
                 {eom && (
-                  <span className="absolute -top-1 -right-1 bg-yellow-400 text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">1</span>
+                  <span className="absolute -top-1 -right-1 bg-yellow-400 text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold shadow">👑</span>
                 )}
               </div>
-              <p className="text-sm mt-2 text-center text-gray-600">
-                {eom ? `Congratulation ${user?.name}!` : 'Belum ditentukan'}
-              </p>
+              {eom ? (
+                <>
+                  <p className="text-sm font-bold mt-2 text-center text-gray-800">{eom.name}</p>
+                  <p className="text-xs text-gray-400 text-center">{eom.jabatan || '-'}</p>
+                  <p className="text-lg font-black text-yellow-600 mt-1">{eom.total_score}</p>
+                  <p className="text-xs text-gray-400">Periode: {eom.period}</p>
+                </>
+              ) : (
+                <p className="text-sm mt-2 text-center text-gray-400">Belum ditentukan</p>
+              )}
+              <a href="/employee-of-month"
+                className="mt-3 text-xs text-blue-500 hover:text-blue-700 font-medium transition underline underline-offset-2">
+                Lihat Selengkapnya →
+              </a>
             </div>
           </div>
 

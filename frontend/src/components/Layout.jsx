@@ -1,14 +1,15 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Home, Users, BookOpen, BarChart2, Star, FileText, Bell, Search, LogOut } from 'lucide-react';
+import { Home, Users, BookOpen, BarChart2, Star, FileText, Bell, Search, LogOut, Trophy } from 'lucide-react';
 
 const menuItems = [
-  { path: '/',            label: 'Home',        icon: Home },
-  { path: '/kepegawaian', label: 'Kepegawaian', icon: Users },
-  { path: '/kegiatan',    label: 'Kegiatan',    icon: BookOpen },
-  { path: '/monitoring',  label: 'Monitoring',  icon: BarChart2 },
-  { path: '/penilaian',   label: 'Penilaian',   icon: Star },
-  { path: '/laporan',     label: 'Laporan',     icon: FileText },
+  { path: '/',                  label: 'Home',            icon: Home },
+  { path: '/kepegawaian',       label: 'Kepegawaian',     icon: Users },
+  { path: '/kegiatan',          label: 'Kegiatan',        icon: BookOpen },
+  { path: '/monitoring',        label: 'Monitoring',      icon: BarChart2 },
+  { path: '/penilaian',         label: 'Penilaian',       icon: Star },
+  { path: '/employee-of-month', label: 'Best Employee',   icon: Trophy },
+  { path: '/laporan',           label: 'Laporan',         icon: FileText },
 ];
 
 export default function Layout({ children }) {
