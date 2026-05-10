@@ -78,6 +78,9 @@ export default function Login() {
             <p className="font-medium text-gray-600">Akun Demo:</p>
             <p>admin@bps.go.id / password</p>
             <p>pegawai@bps.go.id / password</p>
+            <p>ketuatim@bps.go.id / password</p>
+            <p>kasubag@bps.go.id / password</p>
+            <p>kepalabps@bps.go.id / password</p>
           </div>
         </div>
       </div>

@@ -8,7 +8,11 @@ export default function Kegiatan() {
   const [activities, setActivities]       = useState([]);
   const [teams, setTeams]                 = useState([]);
   const [users, setUsers]                 = useState([]);
+  const [allUsers, setAllUsers]           = useState([]);
   const [periode, setPeriode]             = useState('');
+  const [showTeamModal, setShowTeamModal] = useState(false);
+  const [editingTeamId, setEditingTeamId] = useState(null);
+  const [teamForm, setTeamForm]           = useState({ team_name: '', leader_id: '', members: [] });
   const [showModal, setShowModal]         = useState(false);
   const [showProgress, setShowProgress]   = useState(null);
   const [showMonitoring, setShowMonitoring] = useState(null);
@@ -22,7 +26,12 @@ export default function Kegiatan() {
     const [aRes, tRes] = await Promise.all([api.get('/activities'), api.get('/teams')]);
     setActivities(aRes.data);
     setTeams(tRes.data);
-    try { const uRes = await api.get('/users'); setUsers(uRes.data.filter(u => u.role === 'pegawai')); } catch {}
+    try { 
+      const uRes = await api.get('/users'); 
+      const nonAdmins = uRes.data.filter(u => u.role !== 'admin');
+      setUsers(nonAdmins); 
+      setAllUsers(nonAdmins);
+    } catch {}
   };
 
   useEffect(() => { fetchData(); }, []);
@@ -40,6 +49,41 @@ export default function Kegiatan() {
       setForm({ title: '', description: '', deadline: '', team_id: '', assigned_to: '' });
       fetchData();
     } catch (err) { alert(err.response?.data?.message || 'Gagal menyimpan kegiatan'); }
+  };
+
+  const handleCreateTeam = async (e) => {
+    e.preventDefault();
+    try {
+      if (editingTeamId) {
+        await api.put(`/teams/${editingTeamId}`, teamForm);
+        alert('Tim berhasil diperbarui!');
+      } else {
+        await api.post('/teams', teamForm);
+        alert('Tim berhasil dibuat!');
+      }
+      setShowTeamModal(false);
+      setEditingTeamId(null);
+      setTeamForm({ team_name: '', leader_id: '', members: [] });
+      fetchData();
+    } catch (err) { alert(err.response?.data?.message || 'Gagal menyimpan tim'); }
+  };
+
+  const handleEditTeam = (team) => {
+    setEditingTeamId(team.id);
+    setTeamForm({
+      team_name: team.team_name,
+      leader_id: team.leader_id || '',
+      members: team.members ? team.members.map(m => m.id) : []
+    });
+    setShowTeamModal(true);
+  };
+
+  const handleDeleteTeam = async (id) => {
+    if (!confirm('Hapus tim ini secara permanen?')) return;
+    try {
+      await api.delete(`/teams/${id}`);
+      fetchData();
+    } catch (err) { alert(err.response?.data?.message || 'Gagal menghapus tim'); }
   };
 
   const handleEdit = (act) => {
@@ -108,6 +152,18 @@ export default function Kegiatan() {
 
   const isKetuaTim = user?.role === 'ketua_tim';
   const isPegawai  = user?.role === 'pegawai';
+  const canManageTeam = user?.role === 'kasubag' || user?.role === 'kepala_bps';
+  const canCreateActivity = isKetuaTim || canManageTeam || user?.role === 'admin';
+
+  const displayedTeams = teams.filter(team => {
+    if (canManageTeam || user?.role === 'admin') return true;
+    if (isKetuaTim || isPegawai) {
+      const isLeader = team.leader_id === user?.id;
+      const isMember = team.members?.some(m => m.id === user?.id);
+      return isLeader || isMember;
+    }
+    return false;
+  });
 
   return (
     <div className="bg-white rounded-xl p-6 shadow-sm">
@@ -117,7 +173,7 @@ export default function Kegiatan() {
           <input type="month" value={periode} onChange={e => setPeriode(e.target.value)}
             className="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-300" />
         </div>
-        {isKetuaTim && (
+        {canCreateActivity && (
           <button onClick={() => { setShowModal(true); setEditingId(null); setForm({ title: '', description: '', deadline: '', team_id: '', assigned_to: '' }); }}
             className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm transition">
             <Plus className="w-4 h-4" /> Buat Kegiatan
@@ -186,7 +242,7 @@ export default function Kegiatan() {
                           title="Monitoring">
                           <Eye className="w-4 h-4" />
                         </button>
-                        {(isKetuaTim || user?.role === 'admin') && (
+                        {canCreateActivity && (
                           <>
                             <button 
                               onClick={(e) => { e.stopPropagation(); handleEdit(act); }}
@@ -214,6 +270,67 @@ export default function Kegiatan() {
           </tbody>
         </table>
       </div>
+
+      {(displayedTeams.length > 0 || canManageTeam) && (
+        <div className="mt-12">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-bold text-gray-800">{canManageTeam || user?.role === 'admin' ? 'Manajemen Tim' : 'Tim Saya'}</h2>
+            {canManageTeam && (
+              <button onClick={() => { setEditingTeamId(null); setTeamForm({ team_name: '', leader_id: '', members: [] }); setShowTeamModal(true); }}
+                className="flex items-center gap-2 bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm transition">
+                <Plus className="w-4 h-4" /> Tambah Tim Baru
+              </button>
+            )}
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {displayedTeams.map(team => (
+              <div key={team.id} className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition relative group">
+                {canManageTeam && (
+                  <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                    <button onClick={() => handleEditTeam(team)} className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition" title="Edit Tim">
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => handleDeleteTeam(team.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Hapus Tim">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+                <div className="flex items-center gap-3 mb-4 pr-16">
+                  <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center shrink-0">
+                    <Users className="w-6 h-6 text-indigo-500" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-800">{team.team_name}</h3>
+                    <p className="text-xs text-gray-500 font-medium">Ketua: <span className="text-indigo-600">{team.leader_name}</span></p>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-gray-400 uppercase mb-2">Anggota ({team.members?.length || 0})</p>
+                  <div className="space-y-2 max-h-32 overflow-y-auto pr-2">
+                    {team.members?.map(m => (
+                      <div key={m.id} className="flex items-center gap-2 text-sm bg-gray-50 p-2 rounded-lg">
+                        <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-[10px]">
+                          {m.name.charAt(0)}
+                        </div>
+                        <span className="text-gray-600 font-medium truncate">{m.name}</span>
+                      </div>
+                    ))}
+                    {(!team.members || team.members.length === 0) && (
+                      <p className="text-xs text-gray-400 italic">Belum ada anggota</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+            {displayedTeams.length === 0 && (
+              <div className="col-span-full text-center py-12 border-2 border-dashed border-gray-200 rounded-2xl">
+                <p className="text-gray-400 font-medium">Belum ada tim yang terbentuk</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Modal buat kegiatan */}
       {showModal && (
@@ -411,6 +528,63 @@ export default function Kegiatan() {
                 <button type="submit"
                   className="flex-1 bg-blue-600 text-white rounded-xl py-3 text-sm font-semibold hover:bg-blue-700 shadow-lg shadow-blue-200 transition">
                   {isPegawai ? 'Unggah Bukti' : 'Simpan Progress'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Modal buat tim */}
+      {showTeamModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl border border-gray-100 max-h-[90vh] flex flex-col">
+            <h3 className="font-bold text-xl mb-6 text-gray-800">{editingTeamId ? 'Edit Tim' : 'Buat Tim Baru'}</h3>
+            <form onSubmit={handleCreateTeam} className="space-y-4 flex-1 overflow-y-auto pr-2">
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Nama Tim</label>
+                <input placeholder="Contoh: Tim Statistik Sosial" required value={teamForm.team_name}
+                  onChange={e => setTeamForm({ ...teamForm, team_name: e.target.value })}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 transition-all" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Ketua Tim</label>
+                <select required value={teamForm.leader_id} onChange={e => setTeamForm({ ...teamForm, leader_id: e.target.value })}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-100">
+                  <option value="">- Pilih Ketua Tim -</option>
+                  {allUsers.map(u => (
+                    <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Pilih Anggota</label>
+                <div className="border border-gray-200 rounded-xl p-3 max-h-48 overflow-y-auto space-y-2">
+                  {users.map(u => (
+                    <label key={u.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer transition">
+                      <input type="checkbox"
+                        checked={teamForm.members.includes(u.id)}
+                        onChange={(e) => {
+                          const newMembers = e.target.checked 
+                            ? [...teamForm.members, u.id]
+                            : teamForm.members.filter(id => id !== u.id);
+                          setTeamForm({ ...teamForm, members: newMembers });
+                        }}
+                        className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 border-gray-300" />
+                      <div>
+                        <p className="text-sm font-bold text-gray-700">{u.name}</p>
+                        <p className="text-[10px] text-gray-400">{u.jabatan || 'Pegawai'}</p>
+                      </div>
+                    </label>
+                  ))}
+                  {users.length === 0 && <p className="text-xs text-gray-400 text-center py-2">Tidak ada pegawai tersedia</p>}
+                </div>
+              </div>
+              <div className="flex gap-4 pt-4 sticky bottom-0 bg-white">
+                <button type="button" onClick={() => setShowTeamModal(false)}
+                  className="flex-1 border border-gray-200 rounded-xl py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition">Batal</button>
+                <button type="submit"
+                  className="flex-1 bg-indigo-600 text-white rounded-xl py-3 text-sm font-semibold hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition">
+                  {editingTeamId ? 'Simpan Perubahan' : 'Buat Tim'}
                 </button>
               </div>
             </form>

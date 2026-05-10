@@ -4,9 +4,9 @@ const { getActivities, createActivity, updateActivity, getActivityMonitoring, de
 const { verifyToken, authorize } = require('../middleware/auth');
 
 router.get('/',      verifyToken, getActivities);
-router.post('/',     verifyToken, authorize('ketua_tim', 'admin'), createActivity);
-router.put('/:id',   verifyToken, authorize('ketua_tim', 'admin'), updateActivity);
-router.delete('/:id', verifyToken, authorize('ketua_tim', 'admin'), deleteActivity);
+router.post('/',     verifyToken, authorize('ketua_tim', 'admin', 'kasubag', 'kepala_bps'), createActivity);
+router.put('/:id',   verifyToken, authorize('ketua_tim', 'admin', 'kasubag', 'kepala_bps'), updateActivity);
+router.delete('/:id', verifyToken, authorize('ketua_tim', 'admin', 'kasubag', 'kepala_bps'), deleteActivity);
 router.get('/:id/monitoring', verifyToken, getActivityMonitoring);
 
 module.exports = router;
