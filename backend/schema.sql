@@ -101,6 +101,7 @@ CREATE TABLE employee_of_month (
   period VARCHAR(20) NOT NULL,
   validated_by INT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (user_id, period),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (validated_by) REFERENCES users(id) ON DELETE SET NULL
 );

@@ -18,7 +18,7 @@ const getActivities = async (req, res) => {
           FROM (
               SELECT user_id FROM team_members WHERE team_id = a.team_id
               UNION
-              SELECT a.assigned_to WHERE a.assigned_to IS NOT NULL
+              SELECT a.assigned_to
           ) assigned_users
           LEFT JOIN LATERAL (
               SELECT progress_percentage 
@@ -27,6 +27,7 @@ const getActivities = async (req, res) => {
               ORDER BY created_at DESC 
               LIMIT 1
           ) p ON true
+          WHERE assigned_users.user_id IS NOT NULL
       ) calc ON true
     `;
     const params = [];
