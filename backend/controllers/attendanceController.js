@@ -37,12 +37,12 @@ const upsertAttendance = async (req, res) => {
     await db.query(`
       INSERT INTO attendance (user_id, hadir, terlambat, pulang_cepat, hadir_rapat, hadir_upacara, periode)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-      ON DUPLICATE KEY UPDATE
-        hadir        = VALUES(hadir),
-        terlambat    = VALUES(terlambat),
-        pulang_cepat = VALUES(pulang_cepat),
-        hadir_rapat  = VALUES(hadir_rapat),
-        hadir_upacara= VALUES(hadir_upacara)
+      ON CONFLICT (user_id, periode) DO UPDATE SET
+        hadir        = EXCLUDED.hadir,
+        terlambat    = EXCLUDED.terlambat,
+        pulang_cepat = EXCLUDED.pulang_cepat,
+        hadir_rapat  = EXCLUDED.hadir_rapat,
+        hadir_upacara= EXCLUDED.hadir_upacara
     `, [user_id, hadir, terlambat, pulang_cepat, hadir_rapat, hadir_upacara, periode]);
 
     res.json({ message: 'Data presensi berhasil disimpan' });

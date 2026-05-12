@@ -97,8 +97,13 @@ export default function Penilaian() {
 
   const handleDelete = async (id) => {
     if (!confirm('Hapus penilaian ini?')) return;
-    try { await api.delete(`/reviews/${id}`); load(); }
-    catch (err) { alert(err.response?.data?.message || 'Gagal menghapus'); }
+    try { 
+      await api.delete(`/reviews/${id}`); 
+      alert('Penilaian berhasil dihapus');
+      load(); 
+    } catch (err) {
+      alert(err.response?.data?.message || 'Gagal menghapus penilaian');
+    }
   };
 
   const handleValidate = async (id) => {
@@ -261,7 +266,7 @@ export default function Penilaian() {
                           <Eye className="w-4 h-4" />
                         </button>
                         {/* Ketua/Kasubag: edit & hapus jika belum tervalidasi dan milik sendiri */}
-                        {isAtasan && r.reviewer_id === user?.id && r.status !== 'tervalidasi' && (
+                        {(user?.role === 'admin' || (isAtasan && parseInt(r.reviewer_id) === parseInt(user?.id) && r.status !== 'tervalidasi')) && (
                           <>
                             <button onClick={() => openEdit(r)}
                               className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition" title="Edit">

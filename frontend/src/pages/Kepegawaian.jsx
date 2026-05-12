@@ -47,8 +47,13 @@ export default function Kepegawaian() {
 
   const handleDelete = async (id) => {
     if (!confirm('Hapus pegawai ini?')) return;
-    await api.delete(`/users/${id}`);
-    fetchUsers();
+    try {
+      await api.delete(`/users/${id}`);
+      alert('Pegawai berhasil dihapus');
+      fetchUsers();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Gagal menghapus pegawai');
+    }
   };
 
   const isAdmin = user?.role === 'admin';

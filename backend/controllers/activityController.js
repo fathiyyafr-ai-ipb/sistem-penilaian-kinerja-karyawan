@@ -89,10 +89,10 @@ const updateActivity = async (req, res) => {
 
     if (req.user.role === 'ketua_tim') {
       const [team] = await db.query('SELECT leader_id FROM teams WHERE id = ?', [act[0].team_id]);
-      if (act[0].created_by !== req.user.id && (!team.length || team[0].leader_id !== req.user.id)) {
+      if (parseInt(act[0].created_by) !== parseInt(req.user.id) && (!team.length || parseInt(team[0].leader_id) !== parseInt(req.user.id))) {
         return res.status(403).json({ message: 'Akses ditolak. Anda bukan pemilik atau ketua tim untuk kegiatan ini.' });
       }
-    } else if (req.user.role !== 'admin') {
+    } else if (!['admin', 'kasubag', 'kepala_bps'].includes(req.user.role)) {
       return res.status(403).json({ message: 'Akses ditolak.' });
     }
 
@@ -121,10 +121,10 @@ const deleteActivity = async (req, res) => {
 
     if (req.user.role === 'ketua_tim') {
       const [team] = await db.query('SELECT leader_id FROM teams WHERE id = ?', [act[0].team_id]);
-      if (act[0].created_by !== req.user.id && (!team.length || team[0].leader_id !== req.user.id)) {
+      if (parseInt(act[0].created_by) !== parseInt(req.user.id) && (!team.length || parseInt(team[0].leader_id) !== parseInt(req.user.id))) {
         return res.status(403).json({ message: 'Akses ditolak.' });
       }
-    } else if (req.user.role !== 'admin') {
+    } else if (!['admin', 'kasubag', 'kepala_bps'].includes(req.user.role)) {
       return res.status(403).json({ message: 'Akses ditolak.' });
     }
 

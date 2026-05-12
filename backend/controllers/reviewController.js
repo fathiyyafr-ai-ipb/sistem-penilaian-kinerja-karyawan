@@ -149,7 +149,7 @@ const updateReview = async (req, res) => {
       periode
     } = req.body;
 
-    const [rev] = await db.query('SELECT * FROM performance_reviews WHERE id = $1', [id]);
+    const [rev] = await db.query('SELECT * FROM performance_reviews WHERE id = ?', [id]);
     if (!rev.length) return res.status(404).json({ message: 'Penilaian tidak ditemukan' });
 
     const r = rev[0];
@@ -161,7 +161,7 @@ const updateReview = async (req, res) => {
 
     // Ketua Tim / Kasubag: hanya bisa edit penilaian miliknya sendiri
     if (['ketua_tim', 'kasubag'].includes(req.user.role)) {
-      if (r.reviewer_id !== req.user.id) {
+      if (parseInt(r.reviewer_id) !== parseInt(req.user.id)) {
         return res.status(403).json({ message: 'Anda hanya dapat mengedit penilaian yang Anda buat.' });
       }
     }
@@ -180,10 +180,10 @@ const updateReview = async (req, res) => {
 
     await db.query(`
       UPDATE performance_reviews
-      SET speed_score=$1, quality_score=$2, contribution_score=$3,
-          responsibility_score=$4, total_score=$5,
-          reviewer_notes=$6, kepala_notes=$7, periode=$8
-      WHERE id=$9
+      SET speed_score=?, quality_score=?, contribution_score=?,
+          responsibility_score=?, total_score=?,
+          reviewer_notes=?, kepala_notes=?, periode=?
+      WHERE id=?
     `, [
       newSpeed, newQual, newContr, newResp, total,
       reviewer_notes ?? r.reviewer_notes,
@@ -206,7 +206,7 @@ const updateReview = async (req, res) => {
 const deleteReview = async (req, res) => {
   try {
     const { id } = req.params;
-    const [rev] = await db.query('SELECT * FROM performance_reviews WHERE id = $1', [id]);
+    const [rev] = await db.query('SELECT * FROM performance_reviews WHERE id = ?', [id]);
     if (!rev.length) return res.status(404).json({ message: 'Penilaian tidak ditemukan' });
 
     const r = rev[0];
@@ -215,11 +215,11 @@ const deleteReview = async (req, res) => {
       return res.status(403).json({ message: 'Penilaian yang sudah tervalidasi tidak dapat dihapus.' });
     }
 
-    if (r.reviewer_id !== req.user.id && req.user.role !== 'admin') {
+    if (parseInt(r.reviewer_id) !== parseInt(req.user.id) && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Anda hanya dapat menghapus penilaian yang Anda buat.' });
     }
 
-    await db.query('DELETE FROM performance_reviews WHERE id = $1', [id]);
+    await db.query('DELETE FROM performance_reviews WHERE id = ?', [id]);
     res.json({ message: 'Penilaian berhasil dihapus' });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
@@ -235,7 +235,7 @@ const validateReview = async (req, res) => {
     const { id } = req.params;
     const { kepala_notes } = req.body;
 
-    const [rev] = await db.query('SELECT * FROM performance_reviews WHERE id = $1', [id]);
+    const [rev] = await db.query('SELECT * FROM performance_reviews WHERE id = ?', [id]);
     if (!rev.length) return res.status(404).json({ message: 'Penilaian tidak ditemukan' });
 
     if (rev[0].status === 'tervalidasi') {
@@ -245,10 +245,10 @@ const validateReview = async (req, res) => {
     await db.query(`
       UPDATE performance_reviews
       SET status='tervalidasi',
-          validated_by=$1,
+          validated_by=?,
           validated_at=NOW(),
-          kepala_notes=COALESCE($2, kepala_notes)
-      WHERE id=$3
+          kepala_notes=COALESCE(?, kepala_notes)
+      WHERE id=?
     `, [req.user.id, kepala_notes || null, id]);
 
     res.json({ message: 'Penilaian berhasil divalidasi' });
@@ -268,12 +268,12 @@ const validateBulk = async (req, res) => {
       return res.status(400).json({ message: 'review_ids harus berupa array yang tidak kosong' });
     }
 
-    const placeholders = review_ids.map((_, i) => `$${i + 3}`).join(',');
+    const placeholders = review_ids.map(() => '?').join(',');
     await db.query(`
       UPDATE performance_reviews
-      SET status='tervalidasi', validated_by=$1, validated_at=NOW()
+      SET status='tervalidasi', validated_by=?, validated_at=NOW()
       WHERE id IN (${placeholders}) AND status != 'tervalidasi'
-    `, [req.user.id, null, ...review_ids]);
+    `, [req.user.id, ...review_ids]);
 
     res.json({ message: `${review_ids.length} penilaian berhasil divalidasi` });
   } catch (err) {
