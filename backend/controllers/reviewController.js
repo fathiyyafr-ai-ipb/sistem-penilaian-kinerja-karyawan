@@ -26,10 +26,10 @@ const getReviews = async (req, res) => {
     `;
     const params = [];
 
-    if (req.user.role === 'pegawai') {
+    if (req.user.role === 'pegawai' && !req.user.is_leader) {
       query += ` WHERE pr.user_id = ? AND pr.status = 'tervalidasi'`;
       params.push(req.user.id);
-    } else if (req.user.role === 'ketua_tim' || req.user.role === 'kasubag') {
+    } else if ((req.user.role === 'pegawai' && req.user.is_leader) || req.user.role === 'kasubag') {
       query += ' WHERE pr.reviewer_id = ?';
       params.push(req.user.id);
     }
@@ -54,7 +54,7 @@ const getSubordinates = async (req, res) => {
   try {
     console.log('Fetching subordinates for user:', req.user);
     let rows;
-    if (req.user.role === 'ketua_tim') {
+    if (req.user.role === 'pegawai' && req.user.is_leader) {
       [rows] = await db.query(`
         SELECT u.id, u.name, u.nip, u.jabatan, u.unit_kerja, u.role
         FROM team_members tm
@@ -160,7 +160,7 @@ const updateReview = async (req, res) => {
     }
 
     // Ketua Tim / Kasubag: hanya bisa edit penilaian miliknya sendiri
-    if (['ketua_tim', 'kasubag'].includes(req.user.role)) {
+    if ((req.user.role === 'pegawai' && req.user.is_leader) || req.user.role === 'kasubag') {
       if (parseInt(r.reviewer_id) !== parseInt(req.user.id)) {
         return res.status(403).json({ message: 'Anda hanya dapat mengedit penilaian yang Anda buat.' });
       }

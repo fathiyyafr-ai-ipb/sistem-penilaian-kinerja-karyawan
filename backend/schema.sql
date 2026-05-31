@@ -2,13 +2,27 @@
 -- SCHEMA DATABASE BPS KINERJA PEGAWAI (PostgreSQL)
 -- ============================================
 
+DROP TABLE IF EXISTS notifications CASCADE;
+DROP TABLE IF EXISTS final_assessments CASCADE;
+DROP TABLE IF EXISTS attendance_evaluations CASCADE;
+DROP TABLE IF EXISTS behavior_evaluations CASCADE;
+DROP TABLE IF EXISTS activity_evaluations CASCADE;
+DROP TABLE IF EXISTS assessment_weights CASCADE;
+DROP TABLE IF EXISTS task_logbooks CASCADE;
+DROP TABLE IF EXISTS tasks CASCADE;
+DROP TABLE IF EXISTS activity_progress CASCADE;
+DROP TABLE IF EXISTS activities CASCADE;
+DROP TABLE IF EXISTS team_members CASCADE;
+DROP TABLE IF EXISTS teams CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+
 CREATE TABLE users (
   id SERIAL PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
   nip VARCHAR(30) UNIQUE,
   email VARCHAR(100) UNIQUE NOT NULL,
   password VARCHAR(255) NOT NULL,
-  role VARCHAR(20) DEFAULT 'pegawai' CHECK (role IN ('admin','pegawai','ketua_tim','kasubag','kepala_bps')),
+  role VARCHAR(20) DEFAULT 'pegawai' CHECK (role IN ('admin','pegawai','kasubag','kepala_bps')),
   pangkat VARCHAR(50),
   jabatan VARCHAR(100),
   unit_kerja VARCHAR(100),
@@ -19,6 +33,8 @@ CREATE TABLE teams (
   id SERIAL PRIMARY KEY,
   team_name VARCHAR(100) NOT NULL,
   leader_id INT,
+  type VARCHAR(20) DEFAULT 'inti' CHECK (type IN ('inti', 'adhoc')),
+  is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (leader_id) REFERENCES users(id) ON DELETE SET NULL
 );
@@ -36,6 +52,7 @@ CREATE TABLE activities (
   id SERIAL PRIMARY KEY,
   title VARCHAR(200) NOT NULL,
   description TEXT,
+  start_date DATE,
   deadline DATE,
   created_by INT,
   team_id INT,
@@ -59,49 +76,108 @@ CREATE TABLE activity_progress (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-CREATE TABLE attendance (
+CREATE TABLE assessment_weights (
   id SERIAL PRIMARY KEY,
-  user_id INT NOT NULL,
-  hadir INT DEFAULT 0,
-  terlambat INT DEFAULT 0,
-  pulang_cepat INT DEFAULT 0,
-  hadir_rapat INT DEFAULT 0,
-  hadir_upacara INT DEFAULT 0,
-  periode VARCHAR(20) NOT NULL,
-  UNIQUE (user_id, periode),
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  kinerja_weight INT NOT NULL DEFAULT 50 CHECK (kinerja_weight >= 0 AND kinerja_weight <= 100),
+  perilaku_weight INT NOT NULL DEFAULT 30 CHECK (perilaku_weight >= 0 AND perilaku_weight <= 100),
+  presensi_weight INT NOT NULL DEFAULT 20 CHECK (presensi_weight >= 0 AND presensi_weight <= 100),
+  active BOOLEAN DEFAULT TRUE,
+  CHECK (kinerja_weight + perilaku_weight + presensi_weight = 100)
 );
 
-CREATE TABLE performance_reviews (
+CREATE TABLE activity_evaluations (
   id SERIAL PRIMARY KEY,
-  user_id INT NOT NULL,              -- pegawai yang dinilai
-  reviewer_id INT NOT NULL,          -- ketua_tim / kasubag yang menilai
-  speed_score DECIMAL(5,2),          -- Kecepatan Pengerjaan (0-100)
-  quality_score DECIMAL(5,2),        -- Kualitas Pekerjaan (0-100)
-  contribution_score DECIMAL(5,2),   -- Kontribusi Tim (0-100)
-  responsibility_score DECIMAL(5,2), -- Tanggung Jawab (0-100)
-  total_score DECIMAL(5,2),          -- Rata-rata 4 komponen
-  reviewer_notes TEXT,               -- Catatan dari penilai (atasan)
-  kepala_notes TEXT,                 -- Catatan revisi dari Kepala BPS
-  status VARCHAR(30) DEFAULT 'menunggu_validasi'
-    CHECK (status IN ('menunggu_validasi', 'tervalidasi')),
-  validated_by INT,                  -- id kepala_bps yang memvalidasi
+  employee_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  activity_id INT NOT NULL REFERENCES activities(id) ON DELETE CASCADE,
+  reviewer_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  period VARCHAR(10) NOT NULL, -- Format: YYYY-Q# (contoh: 2026-Q1)
+  speed_score DECIMAL(5,2) DEFAULT 0,
+  quality_score DECIMAL(5,2) DEFAULT 0,
+  contribution_score DECIMAL(5,2) DEFAULT 0,
+  responsibility_score DECIMAL(5,2) DEFAULT 0,
+  notes TEXT,
+  status VARCHAR(20) DEFAULT 'draft' CHECK (status IN ('draft', 'submitted')),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(employee_id, activity_id)
+);
+
+CREATE TABLE behavior_evaluations (
+  id SERIAL PRIMARY KEY,
+  employee_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  reviewer_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  period VARCHAR(10) NOT NULL,
+  orientasi_pelayanan DECIMAL(5,2) DEFAULT 0,
+  akuntabilitas DECIMAL(5,2) DEFAULT 0,
+  kompetensi DECIMAL(5,2) DEFAULT 0,
+  harmonis DECIMAL(5,2) DEFAULT 0,
+  loyal DECIMAL(5,2) DEFAULT 0,
+  adaptif DECIMAL(5,2) DEFAULT 0,
+  kolaboratif DECIMAL(5,2) DEFAULT 0,
+  disiplin DECIMAL(5,2) DEFAULT 0,
+  notes TEXT,
+  status VARCHAR(20) DEFAULT 'draft' CHECK (status IN ('draft', 'submitted')),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(employee_id, period)
+);
+
+CREATE TABLE attendance_evaluations (
+  id SERIAL PRIMARY KEY,
+  employee_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  reviewer_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  period VARCHAR(10) NOT NULL,
+  attendance_score DECIMAL(5,2) DEFAULT 0,
+  notes TEXT,
+  status VARCHAR(20) DEFAULT 'draft' CHECK (status IN ('draft', 'submitted')),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(employee_id, period)
+);
+
+CREATE TABLE final_assessments (
+  id SERIAL PRIMARY KEY,
+  employee_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  period VARCHAR(10) NOT NULL,
+  kinerja_score DECIMAL(5,2) DEFAULT 0,
+  perilaku_score DECIMAL(5,2) DEFAULT 0,
+  presensi_score DECIMAL(5,2) DEFAULT 0,
+  final_score DECIMAL(5,2) DEFAULT 0,
+  validated_by INT REFERENCES users(id) ON DELETE SET NULL,
   validated_at TIMESTAMP,
-  periode VARCHAR(20),
+  notes TEXT, -- Catatan Kepala BPS
+  status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'validated', 'published')),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  FOREIGN KEY (reviewer_id) REFERENCES users(id) ON DELETE CASCADE,
-  FOREIGN KEY (validated_by) REFERENCES users(id) ON DELETE SET NULL
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(employee_id, period)
 );
 
-CREATE TABLE employee_of_month (
+CREATE TABLE notifications (
   id SERIAL PRIMARY KEY,
-  user_id INT NOT NULL,
-  total_score DECIMAL(5,2),
-  period VARCHAR(20) NOT NULL,
-  validated_by INT,
+  user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  message TEXT NOT NULL,
+  is_read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE tasks (
+  id SERIAL PRIMARY KEY,
+  activity_id INT NOT NULL REFERENCES activities(id) ON DELETE CASCADE,
+  title VARCHAR(200) NOT NULL,
+  assigned_to INT REFERENCES users(id) ON DELETE SET NULL,
+  weight INT NOT NULL CHECK (weight >= 0 AND weight <= 100),
+  progress_percentage INT DEFAULT 0 CHECK (progress_percentage >= 0 AND progress_percentage <= 100),
+  status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending','on_progress','selesai')),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE task_logbooks (
+  id SERIAL PRIMARY KEY,
+  task_id INT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  progress_percentage INT NOT NULL CHECK (progress_percentage >= 0 AND progress_percentage <= 100),
+  notes TEXT NOT NULL,
+  file_report VARCHAR(255),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE (user_id, period),
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  FOREIGN KEY (validated_by) REFERENCES users(id) ON DELETE SET NULL
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

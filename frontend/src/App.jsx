@@ -5,10 +5,13 @@ import Login            from './pages/Login';
 import Home             from './pages/Home';
 import Kepegawaian      from './pages/Kepegawaian';
 import Kegiatan         from './pages/Kegiatan';
-import Monitoring       from './pages/Monitoring';
 import Penilaian        from './pages/Penilaian';
+import PenilaianTim     from './pages/PenilaianTim';
+import PenilaianPresensi from './pages/PenilaianPresensi';
+import PenilaianBps      from './pages/PenilaianBps';
 import Laporan          from './pages/Laporan';
 import EmployeeOfMonth  from './pages/EmployeeOfMonth';
+import Tim              from './pages/Tim';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -25,10 +28,13 @@ function AppRoutes() {
       <Route path="/" element={<ProtectedRoute><Layout><Home /></Layout></ProtectedRoute>} />
       <Route path="/kepegawaian" element={<ProtectedRoute><Layout><Kepegawaian /></Layout></ProtectedRoute>} />
       <Route path="/kegiatan"    element={<ProtectedRoute><Layout><Kegiatan /></Layout></ProtectedRoute>} />
-      <Route path="/monitoring"  element={<ProtectedRoute><Layout><Monitoring /></Layout></ProtectedRoute>} />
       <Route path="/penilaian"          element={<ProtectedRoute><Layout><Penilaian /></Layout></ProtectedRoute>} />
+      <Route path="/penilaian-tim"      element={<ProtectedRoute><Layout><PenilaianTim /></Layout></ProtectedRoute>} />
+      <Route path="/penilaian-presensi"  element={<ProtectedRoute><Layout><PenilaianPresensi /></Layout></ProtectedRoute>} />
+      <Route path="/penilaian-bps"       element={<ProtectedRoute><Layout><PenilaianBps /></Layout></ProtectedRoute>} />
       <Route path="/laporan"            element={<ProtectedRoute><Layout><Laporan /></Layout></ProtectedRoute>} />
       <Route path="/employee-of-month" element={<ProtectedRoute><Layout><EmployeeOfMonth /></Layout></ProtectedRoute>} />
+      <Route path="/tim"                element={<ProtectedRoute><Layout><Tim /></Layout></ProtectedRoute>} />
       <Route path="*"                   element={<Navigate to="/" />} />
     </Routes>
   );

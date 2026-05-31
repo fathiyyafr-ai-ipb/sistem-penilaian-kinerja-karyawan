@@ -11,7 +11,7 @@ const emptyForm = {
 export default function Kepegawaian() {
   const { user }                    = useAuth();
   const [users, setUsers]           = useState([]);
-  const [periode, setPeriode]       = useState('');
+
   const [showModal, setShowModal]   = useState(false);
   const [form, setForm]             = useState(emptyForm);
   const [editId, setEditId]         = useState(null);
@@ -62,9 +62,7 @@ export default function Kepegawaian() {
     <div className="bg-white rounded-xl p-6 shadow-sm">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="bg-gray-100 border border-gray-300 px-4 py-2 rounded-lg font-semibold text-sm">Periode</div>
-          <input type="month" value={periode} onChange={e => setPeriode(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-300" />
+          <h2 className="text-xl font-bold text-gray-800">Daftar Pegawai</h2>
         </div>
         {isAdmin && (
           <button onClick={() => { setShowModal(true); setForm(emptyForm); setEditId(null); }}
@@ -149,7 +147,7 @@ export default function Kepegawaian() {
                 <label className="text-xs font-medium text-gray-600">Role</label>
                 <select value={form.role} onChange={e => setForm({ ...form, role: e.target.value })}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1 outline-none">
-                  {['admin','pegawai','ketua_tim','kasubag','kepala_bps'].map(r => (
+                  {['admin','pegawai','kasubag','kepala_bps'].map(r => (
                     <option key={r} value={r}>{r}</option>
                   ))}
                 </select>

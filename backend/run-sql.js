@@ -1,19 +1,21 @@
+require('dotenv').config();
 const { Client } = require('pg');
 const fs = require('fs');
 const path = require('path');
 
 const client = new Client({
-  host: 'localhost',
-  port: 5432,
-  user: 'postgres',
-  password: '01234567890',
-  database: 'bps_kinerja',
+  host: process.env.DB_HOST || 'localhost',
+  port: process.env.DB_PORT || 5432,
+  user: process.env.DB_USER || 'postgres',
+  password: process.env.DB_PASSWORD || 'moalhilap',
+  database: process.env.DB_NAME || 'SIMONEV',
 });
 
 async function runSql() {
+  const dbName = process.env.DB_NAME || 'SIMONEV';
   try {
     await client.connect();
-    console.log('Connected to bps_kinerja database');
+    console.log(`Connected to database: ${dbName}`);
 
     const schemaPath = path.join(__dirname, 'schema.sql');
     const seedPath = path.join(__dirname, 'seed.sql');

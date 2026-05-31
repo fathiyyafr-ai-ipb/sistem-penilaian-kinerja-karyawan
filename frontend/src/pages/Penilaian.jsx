@@ -1,456 +1,576 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
-import { Plus, Pencil, Trash2, CheckCircle, Eye, X, ClipboardList } from 'lucide-react';
+import { 
+  Plus, 
+  Pencil, 
+  Trash2, 
+  CheckCircle, 
+  Eye, 
+  X, 
+  ClipboardList,
+  Calendar,
+  Award,
+  Trophy,
+  Sliders,
+  Settings,
+  TrendingUp,
+  User,
+  Heart,
+  CalendarDays,
+  FileText,
+  AlertCircle
+} from 'lucide-react';
 
-const EMPTY_FORM = {
-  user_id: '', speed_score: '', quality_score: '',
-  contribution_score: '', responsibility_score: '',
-  reviewer_notes: '', periode: ''
-};
-
-const SCORE_FIELDS = [
-  { key: 'speed_score',          label: 'Kecepatan Pengerjaan' },
-  { key: 'quality_score',        label: 'Kualitas Pekerjaan' },
-  { key: 'contribution_score',   label: 'Kontribusi Tim' },
-  { key: 'responsibility_score', label: 'Tanggung Jawab' },
+const BEHAVIOR_ASPECTS = [
+  { key: 'orientasi_pelayanan', label: 'Orientasi Pelayanan' },
+  { key: 'akuntabilitas', label: 'Akuntabilitas' },
+  { key: 'kompetensi', label: 'Kompetensi' },
+  { key: 'harmonis', label: 'Harmonis' },
+  { key: 'loyal', label: 'Loyal' },
+  { key: 'adaptif', label: 'Adaptif' },
+  { key: 'kolaboratif', label: 'Kolaboratif' },
+  { key: 'disiplin', label: 'Disiplin' }
 ];
 
-function avg(f) {
-  const vals = SCORE_FIELDS.map(s => +f[s.key]).filter(v => !isNaN(v) && v !== 0);
-  if (vals.length < 4) return '-';
-  return (vals.reduce((a, b) => a + b, 0) / 4).toFixed(2);
-}
-
-function StatusBadge({ status }) {
-  const cfg = status === 'tervalidasi'
-    ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
-    : 'bg-amber-100 text-amber-700 border-amber-200';
-  const label = status === 'tervalidasi' ? '✓ Tervalidasi' : '⏳ Menunggu Validasi';
-  return <span className={`text-[11px] font-bold px-3 py-1 rounded-full border ${cfg}`}>{label}</span>;
+function getPredicate(score) {
+  const val = parseFloat(score);
+  if (isNaN(val)) return 'N/A';
+  if (val >= 90) return { label: 'SANGAT BAIK', color: 'text-emerald-600 bg-emerald-50 border-emerald-200' };
+  if (val >= 80) return { label: 'BAIK', color: 'text-blue-600 bg-blue-50 border-blue-200' };
+  if (val >= 70) return { label: 'CUKUP', color: 'text-amber-600 bg-amber-50 border-amber-200' };
+  if (val >= 60) return { label: 'KURANG', color: 'text-orange-600 bg-orange-50 border-orange-200' };
+  return { label: 'SANGAT KURANG', color: 'text-red-600 bg-red-50 border-red-200' };
 }
 
 export default function Penilaian() {
   const { user } = useAuth();
-  const [reviews, setReviews]           = useState([]);
-  const [subordinates, setSubordinates] = useState([]);
-  const [periode, setPeriode]           = useState('');
-  const [showModal, setShowModal]       = useState(false);
-  const [showDetail, setShowDetail]     = useState(null);
-  const [showEditKepala, setShowEditKepala] = useState(null);
-  const [form, setForm]                 = useState(EMPTY_FORM);
-  const [editingId, setEditingId]       = useState(null);
-  const [kepalaEdit, setKepalaEdit]     = useState({ kepala_notes: '', speed_score: '', quality_score: '', contribution_score: '', responsibility_score: '' });
-  const [loading, setLoading]           = useState(false);
+  const [period, setPeriod] = useState('2026-Q2');
+  const [activeTab, setActiveTab] = useState('scorecard'); // 'scorecard' | 'admin-weights'
+  
+  // Pegawai Score Card states
+  const [scoreSummary, setScoreSummary] = useState(null);
+  const [scoreDetails, setScoreDetails] = useState(null);
+  const [scoreError, setScoreError] = useState(false);
+  const [loadingScore, setLoadingScore] = useState(false);
+  
+  // Top 3 Leaderboard states
+  const [topEmployees, setTopEmployees] = useState([]);
+  const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
+  
+  // Admin Weights states
+  const [weights, setWeights] = useState({ kinerja_weight: 50, perilaku_weight: 30, presensi_weight: 20 });
+  const [weightForm, setWeightForm] = useState({ kinerja_weight: 50, perilaku_weight: 30, presensi_weight: 20 });
+  const [loadingWeights, setLoadingWeights] = useState(false);
+  const [weightsSuccessMsg, setWeightsSuccessMsg] = useState('');
+  const [weightsErrorMsg, setWeightsErrorMsg] = useState('');
 
-  const isAtasan  = ['ketua_tim','kasubag','admin'].includes(user?.role);
-  const isKepala  = user?.role === 'kepala_bps';
-  const isPegawai = user?.role === 'pegawai';
+  const isAdmin = user?.role === 'admin';
 
-  const load = async () => {
+  // Load Pegawai Scores
+  const loadMyScore = async () => {
+    setLoadingScore(true);
+    setScoreError(false);
+    setScoreSummary(null);
+    setScoreDetails(null);
     try {
-      const rRes = await api.get('/reviews');
-      setReviews(rRes.data);
+      const res = await api.get(`/assessments/my-score?period=${period}`);
+      setScoreSummary(res.data.summary);
+      setScoreDetails(res.data.details);
     } catch (err) {
-      console.error('Failed to load reviews:', err);
-    }
-
-    if (isAtasan) {
-      try {
-        const sRes = await api.get('/reviews/subordinates');
-        setSubordinates(sRes.data);
-      } catch (err) {
-        console.error('Failed to load subordinates:', err);
-      }
-    }
-  };
-
-  useEffect(() => { load(); }, []);
-
-  const openAdd = () => { setEditingId(null); setForm(EMPTY_FORM); setShowModal(true); };
-  const openEdit = (r) => {
-    setEditingId(r.id);
-    setForm({
-      user_id: r.user_id, speed_score: r.speed_score || '',
-      quality_score: r.quality_score || '', contribution_score: r.contribution_score || '',
-      responsibility_score: r.responsibility_score || '',
-      reviewer_notes: r.reviewer_notes || '', periode: r.periode || ''
-    });
-    setShowModal(true);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!form.user_id) return alert('Pilih pegawai terlebih dahulu');
-    setLoading(true);
-    try {
-      if (editingId) {
-        await api.put(`/reviews/${editingId}`, form);
-      } else {
-        await api.post('/reviews', { ...form, periode: form.periode || new Date().toISOString().slice(0,7) });
-      }
-      setShowModal(false); load();
-    } catch (err) {
-      alert(err.response?.data?.message || 'Gagal menyimpan');
-    } finally { setLoading(false); }
-  };
-
-  const handleDelete = async (id) => {
-    if (!confirm('Hapus penilaian ini?')) return;
-    try { 
-      await api.delete(`/reviews/${id}`); 
-      alert('Penilaian berhasil dihapus');
-      load(); 
-    } catch (err) {
-      alert(err.response?.data?.message || 'Gagal menghapus penilaian');
+      console.error('Gagal mengambil skor saya:', err);
+      setScoreError(true);
+    } finally {
+      setLoadingScore(false);
     }
   };
 
-  const handleValidate = async (id) => {
-    if (!confirm('Validasi penilaian ini?')) return;
-    try { await api.post(`/reviews/${id}/validate`); load(); }
-    catch (err) { alert(err.response?.data?.message || 'Gagal validasi'); }
+  // Load Top 3 Leaderboard
+  const loadTop3 = async () => {
+    setLoadingLeaderboard(true);
+    try {
+      const res = await api.get(`/assessments/top-3?period=${period}`);
+      setTopEmployees(res.data);
+    } catch (err) {
+      console.error('Gagal mengambil data Top 3:', err);
+    } finally {
+      setLoadingLeaderboard(false);
+    }
   };
 
-  const handleKepalaEdit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  // Load Admin Weights
+  const loadWeights = async () => {
+    setLoadingWeights(true);
     try {
-      await api.put(`/reviews/${showEditKepala.id}`, {
-        ...kepalaEdit,
-        periode: showEditKepala.periode
+      const res = await api.get('/assessments/weights');
+      setWeights(res.data);
+      setWeightForm({
+        kinerja_weight: res.data.kinerja_weight,
+        perilaku_weight: res.data.perilaku_weight,
+        presensi_weight: res.data.presensi_weight
       });
-      setShowEditKepala(null); load();
     } catch (err) {
-      alert(err.response?.data?.message || 'Gagal memperbarui');
-    } finally { setLoading(false); }
+      console.error('Gagal mengambil bobot penilaian:', err);
+    } finally {
+      setLoadingWeights(false);
+    }
   };
 
-  const openKepalaEdit = (r) => {
-    setKepalaEdit({
-      kepala_notes: r.kepala_notes || '',
-      speed_score: r.speed_score || '',
-      quality_score: r.quality_score || '',
-      contribution_score: r.contribution_score || '',
-      responsibility_score: r.responsibility_score || '',
-    });
-    setShowEditKepala(r);
+  useEffect(() => {
+    loadMyScore();
+    loadTop3();
+    if (isAdmin) {
+      loadWeights();
+    }
+  }, [period]);
+
+  // Handle weight adjustments
+  const handleWeightChange = (field, value) => {
+    const val = parseInt(value) || 0;
+    setWeightForm(prev => ({
+      ...prev,
+      [field]: val
+    }));
   };
 
-  const filtered = reviews.filter(r => !periode || r.periode === periode);
+  const handleSaveWeights = async (e) => {
+    e.preventDefault();
+    const sum = weightForm.kinerja_weight + weightForm.perilaku_weight + weightForm.presensi_weight;
+    if (sum !== 100) {
+      setWeightsErrorMsg(`Gagal menyimpan. Akumulasi bobot harus 100% (saat ini: ${sum}%)`);
+      setWeightsSuccessMsg('');
+      return;
+    }
 
-  const totalAll        = filtered.length;
-  const totalValidated  = filtered.filter(r => r.status === 'tervalidasi').length;
-  const totalPending    = filtered.filter(r => r.status === 'menunggu_validasi').length;
+    setLoadingWeights(true);
+    setWeightsErrorMsg('');
+    setWeightsSuccessMsg('');
+    try {
+      const res = await api.put('/assessments/weights', weightForm);
+      setWeightsSuccessMsg(res.data.message || 'Bobot penilaian berhasil diperbarui!');
+      loadWeights();
+    } catch (err) {
+      console.error('Gagal menyimpan bobot:', err);
+      setWeightsErrorMsg(err.response?.data?.message || 'Gagal menyimpan bobot penilaian.');
+    } finally {
+      setLoadingWeights(false);
+    }
+  };
+
+  const predicateInfo = scoreSummary ? getPredicate(scoreSummary.final_score) : null;
+  const weightsFormSum = weightForm.kinerja_weight + weightForm.perilaku_weight + weightForm.presensi_weight;
 
   return (
     <div className="space-y-6">
       {/* ── HEADER ── */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
         <div>
-          <h2 className="text-2xl font-extrabold text-gray-800">Penilaian Kinerja</h2>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {isPegawai ? 'Hasil penilaian kinerja Anda' : isKepala ? 'Validasi seluruh penilaian dari atasan' : 'Buat dan kelola penilaian pegawai Anda'}
+          <h2 className="text-2xl font-extrabold text-gray-800">Modul Penilaian Kinerja</h2>
+          <p className="text-sm text-gray-500 mt-1">
+            {isAdmin 
+              ? 'Kelola bobot kriteria penilaian dinamis atau lihat visualisasi laporan nilai pegawai.' 
+              : 'Hasil pengesahan evaluasi kuartal, visualisasi breakdown nilai, dan dashboard Best Employee BPS.'}
           </p>
         </div>
-        {isAtasan && (
-          <button onClick={openAdd}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow transition">
-            <Plus className="w-4 h-4" /> Beri Penilaian
-          </button>
-        )}
+        
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Admin Navigation Tabs */}
+          {isAdmin && (
+            <div className="flex bg-gray-200 p-1 rounded-xl mr-2">
+              <button
+                onClick={() => setActiveTab('scorecard')}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                  activeTab === 'scorecard' 
+                    ? 'bg-white text-gray-800 shadow-sm' 
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                <Trophy className="w-3.5 h-3.5" />
+                Score & Rankings
+              </button>
+              <button
+                onClick={() => setActiveTab('admin-weights')}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                  activeTab === 'admin-weights' 
+                    ? 'bg-white text-gray-800 shadow-sm' 
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                <Sliders className="w-3.5 h-3.5" />
+                Bobot Nilai
+              </button>
+            </div>
+          )}
+
+          <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2">
+            <Calendar className="w-5 h-5 text-blue-600" />
+            <select 
+              value={period} 
+              onChange={(e) => setPeriod(e.target.value)}
+              className="font-bold text-sm text-gray-800 bg-transparent outline-none cursor-pointer"
+            >
+              <option value="2026-Q1">2026 - Kuartal I (Q1)</option>
+              <option value="2026-Q2">2026 - Kuartal II (Q2)</option>
+              <option value="2026-Q3">2026 - Kuartal III (Q3)</option>
+              <option value="2026-Q4">2026 - Kuartal IV (Q4)</option>
+            </select>
+          </div>
+        </div>
       </div>
 
-      {/* ── STAT CARDS (kepala & atasan) ── */}
-      {!isPegawai && (
-        <div className="grid grid-cols-3 gap-4">
-          {[
-            { label: 'Total Penilaian',       val: totalAll,       color: 'from-blue-500 to-blue-600' },
-            { label: 'Menunggu Validasi',      val: totalPending,   color: 'from-amber-400 to-orange-500' },
-            { label: 'Sudah Tervalidasi',      val: totalValidated, color: 'from-emerald-500 to-teal-600' },
-          ].map(c => (
-            <div key={c.label} className={`bg-gradient-to-br ${c.color} rounded-2xl p-5 text-white shadow-lg`}>
-              <p className="text-sm font-medium opacity-80">{c.label}</p>
-              <p className="text-4xl font-black mt-1">{c.val}</p>
+      {/* ── VIEW FOR ADMIN WEIGHTS PANEL ── */}
+      {isAdmin && activeTab === 'admin-weights' && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 max-w-2xl mx-auto space-y-6">
+          <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+            <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
+              <Settings className="w-6 h-6" />
             </div>
-          ))}
-        </div>
-      )}
-
-      {/* ── PEGAWAI: kartu hasil ── */}
-      {isPegawai && filtered.length === 0 && (
-        <div className="bg-white rounded-2xl p-16 text-center shadow-sm border border-gray-100">
-          <ClipboardList className="w-14 h-14 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-400 font-medium">Belum ada hasil penilaian yang tervalidasi</p>
-        </div>
-      )}
-
-      {isPegawai && filtered.map(r => (
-        <div key={r.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 flex items-center justify-between">
             <div>
-              <p className="text-white font-bold text-lg">Periode {r.periode}</p>
-              <p className="text-blue-100 text-sm">Dinilai oleh: {r.reviewer_name} ({r.reviewer_jabatan || r.reviewer_role})</p>
+              <h3 className="font-extrabold text-gray-800 text-lg">Konfigurasi Bobot Penilaian Kuartal</h3>
+              <p className="text-xs text-gray-500">Perubahan bobot akan langsung berdampak pada seluruh perhitungan nilai kuartal yang belum difinalisasi.</p>
             </div>
-            <StatusBadge status={r.status} />
           </div>
-          <div className="p-6 grid grid-cols-2 gap-4">
-            {SCORE_FIELDS.map(s => (
-              <div key={s.key} className="bg-gray-50 rounded-xl p-4">
-                <p className="text-xs text-gray-500 font-medium">{s.label}</p>
-                <p className="text-3xl font-black text-blue-600 mt-1">{r[s.key] ?? '-'}</p>
-              </div>
-            ))}
-            <div className="col-span-2 bg-blue-50 rounded-xl p-4 flex items-center justify-between">
-              <p className="text-sm font-bold text-blue-700">Nilai Rata-Rata</p>
-              <p className="text-4xl font-black text-blue-700">{r.total_score}</p>
-            </div>
-            {r.reviewer_notes && (
-              <div className="col-span-2 bg-gray-50 rounded-xl p-4">
-                <p className="text-xs font-semibold text-gray-500 mb-1">Catatan Penilai</p>
-                <p className="text-sm text-gray-700">{r.reviewer_notes}</p>
-              </div>
-            )}
-            {r.kepala_notes && (
-              <div className="col-span-2 bg-emerald-50 border border-emerald-200 rounded-xl p-4">
-                <p className="text-xs font-semibold text-emerald-600 mb-1">Catatan Kepala BPS</p>
-                <p className="text-sm text-emerald-800">{r.kepala_notes}</p>
-              </div>
-            )}
-          </div>
-        </div>
-      ))}
 
-      {/* ── TABEL PENILAIAN (atasan & kepala) ── */}
-      {!isPegawai && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-            <h3 className="font-bold text-gray-700">Daftar Penilaian</h3>
-            <input type="month" value={periode} onChange={e => setPeriode(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-blue-300" />
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-slate-50">
-                  {['No','Pegawai','Jabatan','Penilai','Kec','Kua','Kont','TJ','Rata-rata','Periode','Status','Aksi'].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-[11px] font-extrabold text-slate-500 uppercase tracking-wide border-b border-slate-100">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {filtered.map((r, i) => (
-                  <tr key={r.id} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="px-4 py-4 text-gray-400 font-medium">{i+1}</td>
-                    <td className="px-4 py-4">
-                      <p className="font-bold text-gray-800">{r.user_name}</p>
-                      <p className="text-[11px] text-gray-400 font-mono">{r.nip || '-'}</p>
-                    </td>
-                    <td className="px-4 py-4 text-gray-600 text-xs">{r.jabatan || '-'}</td>
-                    <td className="px-4 py-4 text-gray-600 text-xs">{r.reviewer_name}</td>
-                    <td className="px-4 py-4 font-bold text-gray-700">{r.speed_score}</td>
-                    <td className="px-4 py-4 font-bold text-gray-700">{r.quality_score}</td>
-                    <td className="px-4 py-4 font-bold text-gray-700">{r.contribution_score}</td>
-                    <td className="px-4 py-4 font-bold text-gray-700">{r.responsibility_score}</td>
-                    <td className="px-4 py-4">
-                      <span className="text-blue-600 font-extrabold text-base">{r.total_score}</span>
-                    </td>
-                    <td className="px-4 py-4 text-gray-500 text-xs">{r.periode}</td>
-                    <td className="px-4 py-4"><StatusBadge status={r.status} /></td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-1.5">
-                        <button onClick={() => setShowDetail(r)}
-                          className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Detail">
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        {/* Ketua/Kasubag: edit & hapus jika belum tervalidasi dan milik sendiri */}
-                        {(user?.role === 'admin' || (isAtasan && parseInt(r.reviewer_id) === parseInt(user?.id) && r.status !== 'tervalidasi')) && (
-                          <>
-                            <button onClick={() => openEdit(r)}
-                              className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition" title="Edit">
-                              <Pencil className="w-4 h-4" />
-                            </button>
-                            <button onClick={() => handleDelete(r.id)}
-                              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Hapus">
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </>
-                        )}
-                        {/* Kepala BPS */}
-                        {isKepala && r.status === 'menunggu_validasi' && (
-                          <>
-                            <button onClick={() => openKepalaEdit(r)}
-                              className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition" title="Edit & Catatan">
-                              <Pencil className="w-4 h-4" />
-                            </button>
-                            <button onClick={() => handleValidate(r.id)}
-                              className="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition" title="Validasi">
-                              <CheckCircle className="w-3 h-3" /> Validasi
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {filtered.length === 0 && (
-                  <tr><td colSpan={12} className="text-center py-16 text-gray-400 italic">Belum ada data penilaian</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* ── MODAL: Buat / Edit Penilaian (Atasan) ── */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[95vh]">
-            <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100 flex-shrink-0">
-              <h3 className="font-bold text-lg text-gray-800">{editingId ? 'Edit Penilaian' : 'Beri Penilaian'}</h3>
-              <button onClick={() => setShowModal(false)} className="p-1 hover:bg-gray-100 rounded-lg">
-                <X className="w-5 h-5 text-gray-500" />
-              </button>
+          {weightsSuccessMsg && (
+            <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl flex items-center gap-3">
+              <CheckCircle className="w-5 h-5 flex-shrink-0" />
+              <p className="text-sm font-medium">{weightsSuccessMsg}</p>
             </div>
-            <div className="overflow-y-auto p-6">
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="text-xs font-semibold text-gray-600">Pegawai *</label>
-                  <select value={form.user_id} onChange={e => setForm({...form, user_id: e.target.value})} required
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mt-1 outline-none focus:ring-2 focus:ring-blue-300">
-                    <option value="">-- Pilih Pegawai --</option>
-                    {subordinates.map(u => <option key={u.id} value={u.id}>{u.name} {u.jabatan ? `(${u.jabatan})` : ''}</option>)}
-                  </select>
-                </div>
-                {SCORE_FIELDS.map(s => (
-                  <div key={s.key}>
-                    <label className="text-xs font-semibold text-gray-600">{s.label} (0–100) *</label>
-                    <input type="number" min="0" max="100" required value={form[s.key]}
-                      onChange={e => setForm({...form, [s.key]: e.target.value})}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mt-1 outline-none focus:ring-2 focus:ring-blue-300" />
+          )}
+          {weightsErrorMsg && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+              <p className="text-sm font-medium">{weightsErrorMsg}</p>
+            </div>
+          )}
+
+          <form onSubmit={handleSaveWeights} className="space-y-6">
+            <div className="space-y-5">
+              {[
+                { key: 'kinerja_weight', label: 'Bobot Evaluasi Kinerja (Rata-Rata Kegiatan)', desc: 'Mengukur ketuntasan dan kontribusi tugas di kuartal.' },
+                { key: 'perilaku_weight', label: 'Bobot Nilai Perilaku (Ber-AKHLAK)', desc: 'Mengukur sikap, etika, dan keselarasan Core Values ASN.' },
+                { key: 'presensi_weight', label: 'Bobot Presensi / Kehadiran', desc: 'Mengukur disiplin kehadiran kerja bulanan oleh Kasubag.' }
+              ].map(item => (
+                <div key={item.key} className="space-y-2">
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <label className="text-sm font-extrabold text-gray-800">{item.label}</label>
+                      <p className="text-xs text-gray-400 mt-0.5">{item.desc}</p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={weightForm[item.key]}
+                        onChange={(e) => handleWeightChange(item.key, e.target.value)}
+                        className="w-16 border border-gray-200 rounded-lg px-2 py-1 text-sm font-bold text-center outline-none focus:ring-2 focus:ring-blue-300"
+                      />
+                      <span className="text-sm font-bold text-gray-500">%</span>
+                    </div>
                   </div>
-                ))}
-                {/* Preview rata-rata */}
-                <div className="bg-blue-50 rounded-xl px-4 py-3 flex justify-between items-center">
-                  <span className="text-sm font-semibold text-blue-700">Nilai Rata-Rata</span>
-                  <span className="text-2xl font-black text-blue-700">{avg(form)}</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={weightForm[item.key]}
+                    onChange={(e) => handleWeightChange(item.key, e.target.value)}
+                    className="w-full h-1.5 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                  />
                 </div>
-                <div>
-                  <label className="text-xs font-semibold text-gray-600">Catatan Penilai</label>
-                  <textarea value={form.reviewer_notes} onChange={e => setForm({...form, reviewer_notes: e.target.value})}
-                    rows={3} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mt-1 outline-none focus:ring-2 focus:ring-blue-300 resize-none" />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-gray-600">Periode *</label>
-                  <input type="month" required value={form.periode} onChange={e => setForm({...form, periode: e.target.value})}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mt-1 outline-none focus:ring-2 focus:ring-blue-300" />
-                </div>
-                <div className="flex gap-3 pt-2">
-                  <button type="button" onClick={() => setShowModal(false)}
-                    className="flex-1 border border-gray-200 rounded-xl py-2.5 text-sm font-medium hover:bg-gray-50 transition">Batal</button>
-                  <button type="submit" disabled={loading}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-2.5 text-sm font-bold transition disabled:opacity-50">
-                    {loading ? 'Menyimpan...' : 'Simpan'}
-                  </button>
-                </div>
-              </form>
+              ))}
             </div>
-          </div>
+
+            {/* Sum indicator */}
+            <div className={`p-4 rounded-xl flex justify-between items-center font-bold ${
+              weightsFormSum === 100 
+                ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' 
+                : 'bg-red-50 text-red-700 border border-red-100'
+            }`}>
+              <span className="text-sm">Total Akumulasi Bobot</span>
+              <span className="text-xl font-black">{weightsFormSum}% {weightsFormSum === 100 ? '(Valid)' : '(Harus 100%)'}</span>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loadingWeights || weightsFormSum !== 100}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-3 rounded-xl shadow-md transition disabled:opacity-50"
+            >
+              {loadingWeights ? 'Menyimpan...' : 'Simpan Konfigurasi Bobot'}
+            </button>
+          </form>
         </div>
       )}
 
-      {/* ── MODAL: Edit & Catatan Kepala BPS ── */}
-      {showEditKepala && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl">
-            <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
-              <div>
-                <h3 className="font-bold text-lg text-gray-800">Revisi Penilaian</h3>
-                <p className="text-xs text-gray-400">{showEditKepala.user_name} — Periode {showEditKepala.periode}</p>
+      {/* ── PEGAWAI VIEW: SCORECARD & LEADERBOARD ── */}
+      {(!isAdmin || activeTab === 'scorecard') && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* PANEL KIRI: SCORE CARD & DETAIL (lg:col-span-8) */}
+          <div className="lg:col-span-8 space-y-6">
+            {loadingScore ? (
+              <div className="bg-white rounded-2xl p-16 text-center shadow-sm border border-gray-100">
+                <p className="text-gray-500 font-semibold text-sm">Memuat rapor hasil penilaian Anda...</p>
               </div>
-              <button onClick={() => setShowEditKepala(null)} className="p-1 hover:bg-gray-100 rounded-lg">
-                <X className="w-5 h-5 text-gray-500" />
-              </button>
-            </div>
-            <form onSubmit={handleKepalaEdit} className="p-6 space-y-4">
-              {SCORE_FIELDS.map(s => (
-                <div key={s.key}>
-                  <label className="text-xs font-semibold text-gray-600">{s.label} (0–100)</label>
-                  <input type="number" min="0" max="100" value={kepalaEdit[s.key]}
-                    onChange={e => setKepalaEdit({...kepalaEdit, [s.key]: e.target.value})}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mt-1 outline-none focus:ring-2 focus:ring-blue-300" />
-                </div>
-              ))}
-              <div className="bg-blue-50 rounded-xl px-4 py-3 flex justify-between items-center">
-                <span className="text-sm font-semibold text-blue-700">Rata-Rata Baru</span>
-                <span className="text-2xl font-black text-blue-700">{avg(kepalaEdit)}</span>
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-600">Catatan Kepala BPS</label>
-                <textarea value={kepalaEdit.kepala_notes} onChange={e => setKepalaEdit({...kepalaEdit, kepala_notes: e.target.value})}
-                  rows={3} placeholder="Tambahkan catatan revisi (opsional)..."
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mt-1 outline-none focus:ring-2 focus:ring-blue-300 resize-none" />
-              </div>
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowEditKepala(null)}
-                  className="flex-1 border border-gray-200 rounded-xl py-2.5 text-sm font-medium hover:bg-gray-50 transition">Batal</button>
-                <button type="submit" disabled={loading}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-2.5 text-sm font-bold transition disabled:opacity-50">
-                  {loading ? 'Menyimpan...' : 'Simpan Revisi'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ── MODAL: Detail Penilaian ── */}
-      {showDetail && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl">
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-t-2xl px-6 py-5 flex items-center justify-between">
-              <div>
-                <h3 className="text-white font-bold text-lg">{showDetail.user_name}</h3>
-                <p className="text-blue-100 text-sm">{showDetail.jabatan || '-'} • Periode {showDetail.periode}</p>
-              </div>
-              <button onClick={() => setShowDetail(null)} className="p-1.5 hover:bg-white/20 rounded-lg transition">
-                <X className="w-5 h-5 text-white" />
-              </button>
-            </div>
-            <div className="p-6 space-y-3">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-gray-500">Penilai: <b>{showDetail.reviewer_name}</b></span>
-                <StatusBadge status={showDetail.status} />
-              </div>
-              {SCORE_FIELDS.map(s => (
-                <div key={s.key} className="flex justify-between items-center bg-gray-50 rounded-xl px-4 py-3">
-                  <span className="text-sm text-gray-600">{s.label}</span>
-                  <span className="font-black text-gray-800 text-lg">{showDetail[s.key] ?? '-'}</span>
-                </div>
-              ))}
-              <div className="flex justify-between items-center bg-blue-600 rounded-xl px-4 py-3">
-                <span className="text-sm font-bold text-white">Nilai Rata-Rata</span>
-                <span className="font-black text-white text-2xl">{showDetail.total_score}</span>
-              </div>
-              {showDetail.reviewer_notes && (
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <p className="text-xs font-bold text-gray-500 mb-1">Catatan Penilai</p>
-                  <p className="text-sm text-gray-700">{showDetail.reviewer_notes}</p>
-                </div>
-              )}
-              {showDetail.kepala_notes && (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
-                  <p className="text-xs font-bold text-emerald-600 mb-1">Catatan Kepala BPS</p>
-                  <p className="text-sm text-emerald-800">{showDetail.kepala_notes}</p>
-                </div>
-              )}
-              {showDetail.validated_by_name && (
-                <p className="text-xs text-gray-400 text-center pt-1">
-                  Divalidasi oleh <b>{showDetail.validated_by_name}</b> pada {new Date(showDetail.validated_at).toLocaleDateString('id-ID')}
+            ) : scoreError || !scoreSummary ? (
+              <div className="bg-white rounded-2xl p-16 text-center shadow-sm border border-gray-100 space-y-4">
+                <ClipboardList className="w-16 h-16 text-gray-300 mx-auto" />
+                <h3 className="text-lg font-bold text-gray-700">Hasil Penilaian Belum Tersedia</h3>
+                <p className="text-sm text-gray-400 max-w-sm mx-auto">
+                  Hasil penilaian kinerja kuartal terpilih ({period}) belum selesai diproses atau belum resmi diterbitkan oleh Kepala BPS.
                 </p>
-              )}
+                <div className="inline-block bg-blue-50 border border-blue-100 text-blue-700 text-xs px-4 py-2 rounded-xl">
+                  Notifikasi akan dikirim secara instan ke akun Anda setelah periode ini dirilis.
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* ── CIRCULAR CARD / HIGHLIGHT CARD ── */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden grid grid-cols-1 md:grid-cols-12">
+                  {/* Left part: Circular final score */}
+                  <div className="md:col-span-5 bg-gradient-to-br from-blue-700 via-blue-800 to-indigo-850 text-white p-8 flex flex-col items-center justify-center text-center relative">
+                    <p className="text-xs font-bold uppercase tracking-widest text-blue-100">Nilai Akhir Terbobot</p>
+                    
+                    {/* Ring score */}
+                    <div className="relative w-36 h-36 flex items-center justify-center mt-5 mb-4">
+                      {/* Inner circle */}
+                      <div className="absolute w-28 h-28 bg-white/10 backdrop-blur-md rounded-full flex flex-col items-center justify-center border border-white/20">
+                        <span className="text-3xl font-black font-sans leading-none">{parseFloat(scoreSummary.final_score).toFixed(2)}</span>
+                      </div>
+                      {/* Outer visual glow border */}
+                      <div className="w-full h-full rounded-full border-4 border-dashed border-white/30 animate-[spin_40s_linear_infinite]" />
+                    </div>
+
+                    <span className={`text-xs font-black px-4 py-1.5 rounded-full border shadow-sm ${predicateInfo?.color}`}>
+                      {predicateInfo?.label}
+                    </span>
+                  </div>
+
+                  {/* Right part: component breakdown & weights */}
+                  <div className="md:col-span-7 p-6 flex flex-col justify-center space-y-4">
+                    <h3 className="font-extrabold text-gray-800 text-sm border-b border-gray-100 pb-2">
+                      Rincian Komponen Terbobot
+                    </h3>
+                    
+                    <div className="space-y-3">
+                      {[
+                        { label: 'Kinerja (Rata-rata Kegiatan)', score: scoreSummary.kinerja_score, weight: weights.kinerja_weight, color: 'bg-blue-600' },
+                        { label: 'Perilaku ASN (Ber-AKHLAK)', score: scoreSummary.perilaku_score, weight: weights.perilaku_weight, color: 'bg-indigo-600' },
+                        { label: 'Disiplin Presensi / Kehadiran', score: scoreSummary.presensi_score, weight: weights.presensi_weight, color: 'bg-emerald-600' }
+                      ].map((comp, idx) => {
+                        const contribution = (parseFloat(comp.score || 0) * (comp.weight / 100)).toFixed(2);
+                        return (
+                          <div key={idx} className="space-y-1">
+                            <div className="flex justify-between text-xs font-bold text-gray-600">
+                              <span>{comp.label}</span>
+                              <span className="text-gray-800">{comp.score ? parseFloat(comp.score).toFixed(2) : '0'} <span className="font-medium text-gray-400">x {comp.weight}% = {contribution}</span></span>
+                            </div>
+                            <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                              <div 
+                                className={`${comp.color} h-2 rounded-full`}
+                                style={{ width: `${comp.score || 0}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    
+                    <p className="text-[10px] text-gray-400 font-semibold leading-tight pt-1">
+                      * Hasil ini sah divalidasi oleh Kepala BPS pada {new Date(scoreSummary.validated_at).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}.
+                    </p>
+                  </div>
+                </div>
+
+                {/* ── EXPANDING DETAILS ── */}
+                <div className="space-y-4">
+                  {/* Detailed Kegiatan (Kinerja) */}
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div className="bg-gray-50 px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-blue-600" />
+                      <h4 className="font-extrabold text-gray-700 text-sm">Rincian Nilai Kinerja per Kegiatan</h4>
+                    </div>
+                    <div className="p-5">
+                      {scoreDetails?.activities?.length === 0 ? (
+                        <p className="text-gray-400 text-xs italic">Tidak ada kegiatan terekam di kuartal ini.</p>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-xs text-left">
+                            <thead>
+                              <tr className="border-b border-gray-100 text-slate-500 font-bold">
+                                <th className="pb-3 w-10">No</th>
+                                <th className="pb-3">Judul Kegiatan</th>
+                                <th className="pb-3 text-center">Kecepatan</th>
+                                <th className="pb-3 text-center">Kualitas</th>
+                                <th className="pb-3 text-center">Kontribusi</th>
+                                <th className="pb-3 text-center">Tanggung Jawab</th>
+                                <th className="pb-3 text-center font-bold text-blue-600">Rata-Rata</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                              {scoreDetails?.activities?.map((act, i) => {
+                                const actAvg = ((parseFloat(act.speed_score || 0) + parseFloat(act.quality_score || 0) + parseFloat(act.contribution_score || 0) + parseFloat(act.responsibility_score || 0)) / 4).toFixed(2);
+                                return (
+                                  <tr key={i} className="hover:bg-slate-50/50">
+                                    <td className="py-3 text-gray-400 font-bold">{i + 1}</td>
+                                    <td className="py-3">
+                                      <p className="font-bold text-gray-800">{act.activity_title}</p>
+                                      {act.notes && <p className="text-[10px] text-gray-400 mt-0.5">Catatan: "{act.notes}"</p>}
+                                    </td>
+                                    <td className="py-3 text-center font-semibold text-gray-600">{parseFloat(act.speed_score || 0).toFixed(2)}</td>
+                                    <td className="py-3 text-center font-semibold text-gray-600">{parseFloat(act.quality_score || 0).toFixed(2)}</td>
+                                    <td className="py-3 text-center font-semibold text-gray-600">{parseFloat(act.contribution_score || 0).toFixed(2)}</td>
+                                    <td className="py-3 text-center font-semibold text-gray-600">{parseFloat(act.responsibility_score || 0).toFixed(2)}</td>
+                                    <td className="py-3 text-center font-bold text-blue-600">{actAvg}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Detailed Behavior (Perilaku) */}
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div className="bg-gray-50 px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+                      <Heart className="w-4 h-4 text-indigo-600" />
+                      <h4 className="font-extrabold text-gray-700 text-sm">Rincian 8 Aspek Perilaku Ber-AKHLAK</h4>
+                    </div>
+                    <div className="p-5 space-y-4">
+                      {scoreDetails?.behavior ? (
+                        <>
+                          <div className="grid grid-cols-2 gap-4">
+                            {BEHAVIOR_ASPECTS.map(aspect => {
+                              const score = scoreDetails.behavior[aspect.key];
+                              return (
+                                <div key={aspect.key} className="space-y-1 bg-gray-50/50 p-2.5 rounded-xl border border-gray-100">
+                                  <div className="flex justify-between text-xs">
+                                    <span className="font-bold text-gray-700">{aspect.label}</span>
+                                    <span className="font-black text-indigo-600 font-mono">{score ? score : '-'}</span>
+                                  </div>
+                                  <div className="w-full bg-gray-200/60 h-1.5 rounded-full overflow-hidden">
+                                    <div 
+                                      className="bg-indigo-600 h-1.5 rounded-full"
+                                      style={{ width: `${score || 0}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          {scoreDetails.behavior.notes && (
+                            <div className="bg-indigo-50/50 border border-indigo-100 rounded-xl p-3.5 text-xs text-indigo-800">
+                              <strong>Catatan Perilaku Ketua Tim:</strong> "{scoreDetails.behavior.notes}"
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-gray-400 text-xs italic">Detail perilaku belum disubmit oleh Ketua Tim.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Detailed Attendance */}
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div className="bg-gray-50 px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+                      <CalendarDays className="w-4 h-4 text-emerald-600" />
+                      <h4 className="font-extrabold text-gray-700 text-sm">Rincian Disiplin & Presensi</h4>
+                    </div>
+                    <div className="p-5">
+                      {scoreDetails?.attendance ? (
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                          <div className="space-y-1">
+                            <p className="text-xs text-gray-500">Skor kehadiran final yang diinput oleh Kasubag:</p>
+                            {scoreDetails.attendance.notes && (
+                              <p className="text-xs text-gray-700 italic bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">
+                                Catatan: "{scoreDetails.attendance.notes}"
+                              </p>
+                            )}
+                          </div>
+                          <div className="bg-emerald-50 border border-emerald-100 text-emerald-700 rounded-2xl p-4 text-center min-w-28 shadow-sm">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Skor Kehadiran</p>
+                            <p className="text-2xl font-black mt-0.5">{scoreDetails.attendance.attendance_score}</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-gray-400 text-xs italic">Detail kehadiran belum dimasukkan oleh Kasubag.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Catatan Kepala BPS */}
+                  {scoreSummary.notes && (
+                    <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl p-5 shadow-sm space-y-1.5">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-amber-700 flex items-center gap-1.5">
+                        <FileText className="w-4 h-4" />
+                        Catatan & Arahan Kepala BPS
+                      </h4>
+                      <p className="text-sm italic leading-relaxed">"{scoreSummary.notes}"</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* PANEL KANAN: LEADERBOARD BEST EMPLOYEE (lg:col-span-4) */}
+          <div className="lg:col-span-4 space-y-6">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="bg-gradient-to-r from-blue-700 to-indigo-700 px-5 py-4 border-b border-gray-100 flex items-center gap-2 text-white">
+                <Trophy className="w-4 h-4 text-amber-300" />
+                <h3 className="font-extrabold text-white text-sm">Best Employee (Top 3)</h3>
+              </div>
+              
+              <div className="p-5">
+                {loadingLeaderboard ? (
+                  <p className="text-center py-8 text-gray-400 text-xs">Memuat peringkat terbaik...</p>
+                ) : topEmployees.length === 0 ? (
+                  <div className="text-center py-8 text-gray-400 space-y-2">
+                    <Award className="w-10 h-10 text-gray-200 mx-auto" />
+                    <p className="text-xs italic">Leaderboard belum dirilis untuk kuartal ini.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Visual Podium representation or ranking cards */}
+                    {topEmployees.map((emp, index) => {
+                      const medalColors = [
+                        'bg-yellow-50 text-yellow-600 border-yellow-200 ring-yellow-400/20', // Gold
+                        'bg-slate-50 text-slate-600 border-slate-200 ring-slate-400/20',     // Silver
+                        'bg-amber-50 text-amber-700 border-amber-200 ring-amber-500/20'      // Bronze
+                      ];
+                      const medalLabels = ['🥇 1st', '🥈 2nd', '🥉 3rd'];
+
+                      return (
+                        <div 
+                          key={emp.id} 
+                          className={`flex items-center justify-between p-4 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden transition-transform hover:-translate-y-0.5 ${
+                            emp.employee_id === user?.id ? 'bg-blue-50/50 border-blue-200 ring-2 ring-blue-600/10' : ''
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            {/* Avatar or Medal */}
+                            <div className={`w-10 h-10 rounded-full flex flex-col items-center justify-center font-bold text-[10px] border shadow-sm ${medalColors[index] || 'bg-gray-50 text-gray-500'}`}>
+                              <span className="font-extrabold">{medalLabels[index] ? medalLabels[index].split(' ')[1] : `${index+1}`}</span>
+                            </div>
+
+                            <div>
+                              <p className="font-bold text-gray-800 text-xs">{emp.employee_name} {emp.employee_id === user?.id && <span className="text-[10px] font-extrabold text-blue-600 bg-blue-100/70 border border-blue-200 rounded px-1.5 ml-1">Saya</span>}</p>
+                              <p className="text-[10px] text-gray-400 font-mono mt-0.5">{emp.nip || '-'}</p>
+                              <p className="text-[10px] text-gray-500 truncate max-w-[150px] mt-0.5">{emp.jabatan || 'Staf Pelaksana'}</p>
+                            </div>
+                          </div>
+
+                          <div className="text-right">
+                            <p className="text-base font-black text-blue-700">{parseFloat(emp.final_score).toFixed(2)}</p>
+                            <p className="text-[9px] text-gray-400 font-semibold uppercase">Nilai Akhir</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

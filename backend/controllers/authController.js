@@ -25,15 +25,20 @@ const login = async (req, res) => {
       return res.status(401).json({ message: 'Email atau password salah' });
     }
 
+    // Cek apakah user memimpin suatu tim
+    const [teams] = await db.query('SELECT 1 FROM teams WHERE leader_id = ? LIMIT 1', [user.id]);
+    const is_leader = teams.length > 0;
+
     // Buat JWT token
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role, name: user.name },
+      { id: user.id, email: user.email, role: user.role, name: user.name, is_leader },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN }
     );
 
     // Jangan kirim password ke client
     const { password: _, ...userData } = user;
+    userData.is_leader = is_leader;
 
     res.json({ message: 'Login berhasil', token, user: userData });
   } catch (err) {
@@ -76,7 +81,12 @@ const getProfile = async (req, res) => {
       [req.user.id]
     );
     if (rows.length === 0) return res.status(404).json({ message: 'User tidak ditemukan' });
-    res.json(rows[0]);
+    
+    const user = rows[0];
+    const [teams] = await db.query('SELECT 1 FROM teams WHERE leader_id = ? LIMIT 1', [user.id]);
+    user.is_leader = teams.length > 0;
+
+    res.json(user);
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }

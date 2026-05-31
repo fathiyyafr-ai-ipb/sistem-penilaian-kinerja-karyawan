@@ -22,6 +22,7 @@ const progressRoutes     = require('./routes/progress');
 const attendanceRoutes   = require('./routes/attendance');
 const reviewRoutes       = require('./routes/reviews');
 const eomRoutes          = require('./routes/employeeOfMonth');
+const assessmentRoutes   = require('./routes/assessments');
 
 // Gunakan Routes
 app.use('/api/auth',             authRoutes);
@@ -32,6 +33,7 @@ app.use('/api/progress',         progressRoutes);
 app.use('/api/attendance',       attendanceRoutes);
 app.use('/api/reviews',          reviewRoutes);
 app.use('/api/employee-of-month',eomRoutes);
+app.use('/api/assessments',      assessmentRoutes);
 
 // Route default
 app.get('/', (req, res) => {

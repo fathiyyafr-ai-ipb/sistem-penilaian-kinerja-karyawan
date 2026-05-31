@@ -28,11 +28,14 @@ const getAllTeams = async (req, res) => {
 // POST /api/teams
 const createTeam = async (req, res) => {
   try {
-    const { team_name, leader_id, members } = req.body;
+    const { team_name, leader_id, type, is_active, members } = req.body;
     const finalLeaderId = leader_id || null;
+    const finalType = type || 'inti';
+    const finalIsActive = is_active !== undefined ? is_active : true;
+
     const [result] = await db.query(
-      'INSERT INTO teams (team_name, leader_id) VALUES (?, ?)',
-      [team_name, finalLeaderId]
+      'INSERT INTO teams (team_name, leader_id, type, is_active) VALUES (?, ?, ?, ?)',
+      [team_name, finalLeaderId, finalType, finalIsActive]
     );
     const team_id = result?.insertId;
 
@@ -41,6 +44,11 @@ const createTeam = async (req, res) => {
         await db.query(
           'INSERT INTO team_members (team_id, user_id) VALUES (?, ?) ON CONFLICT (team_id, user_id) DO NOTHING',
           [team_id, user_id]
+        );
+        // Notifikasi ke setiap anggota yang ditambahkan
+        await db.query(
+          'INSERT INTO notifications (user_id, message) VALUES (?, ?)',
+          [user_id, `Anda telah ditambahkan ke dalam tim baru: ${team_name}`]
         );
       }
     }
@@ -56,10 +64,25 @@ const createTeam = async (req, res) => {
 const addMember = async (req, res) => {
   try {
     const { team_id, user_id } = req.body;
+
+    // Ambil nama tim
+    const [teamRows] = await db.query('SELECT team_name FROM teams WHERE id = ?', [team_id]);
+    if (teamRows.length === 0) {
+      return res.status(404).json({ message: 'Tim tidak ditemukan' });
+    }
+    const team_name = teamRows[0].team_name;
+
     await db.query(
       'INSERT INTO team_members (team_id, user_id) VALUES (?, ?) ON CONFLICT (team_id, user_id) DO NOTHING',
       [team_id, user_id]
     );
+
+    // Kirim notifikasi
+    await db.query(
+      'INSERT INTO notifications (user_id, message) VALUES (?, ?)',
+      [user_id, `Anda telah ditambahkan ke dalam tim baru: ${team_name}`]
+    );
+
     res.json({ message: 'Anggota berhasil ditambahkan' });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
@@ -70,13 +93,22 @@ const addMember = async (req, res) => {
 const updateTeam = async (req, res) => {
   try {
     const { id } = req.params;
-    const { team_name, leader_id, members } = req.body;
+    const { team_name, leader_id, type, is_active, members } = req.body;
     const finalLeaderId = leader_id || null;
+    const finalType = type || 'inti';
+    const finalIsActive = is_active !== undefined ? is_active : true;
+
+    // 1. Dapatkan daftar anggota saat ini sebelum dihapus
+    const [existingMembersRows] = await db.query(
+      'SELECT user_id FROM team_members WHERE team_id = ?',
+      [id]
+    );
+    const existingMemberIds = existingMembersRows.map(m => m.user_id);
 
     // Update table teams
     await db.query(
-      'UPDATE teams SET team_name = ?, leader_id = ? WHERE id = ?',
-      [team_name, finalLeaderId, id]
+      'UPDATE teams SET team_name = ?, leader_id = ?, type = ?, is_active = ? WHERE id = ?',
+      [team_name, finalLeaderId, finalType, finalIsActive, id]
     );
 
     // Delete existing members then insert new ones
@@ -88,6 +120,14 @@ const updateTeam = async (req, res) => {
           'INSERT INTO team_members (team_id, user_id) VALUES (?, ?) ON CONFLICT (team_id, user_id) DO NOTHING',
           [id, user_id]
         );
+
+        // Jika user_id belum ada di existingMemberIds, kirim notifikasi
+        if (!existingMemberIds.includes(user_id)) {
+          await db.query(
+            'INSERT INTO notifications (user_id, message) VALUES (?, ?)',
+            [user_id, `Anda telah ditambahkan ke dalam tim baru: ${team_name}`]
+          );
+        }
       }
     }
 

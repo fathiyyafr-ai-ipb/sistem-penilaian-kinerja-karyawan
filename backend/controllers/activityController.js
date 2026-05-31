@@ -7,6 +7,7 @@ const getActivities = async (req, res) => {
       SELECT a.*,
         u.name  AS created_by_name,
         t.team_name,
+        t.leader_id AS team_leader_id,
         au.name AS assigned_to_name,
         COALESCE(calc.total_progress, 0) as total_progress
       FROM activities a
@@ -14,30 +15,21 @@ const getActivities = async (req, res) => {
       LEFT JOIN teams t  ON a.team_id     = t.id
       LEFT JOIN users au ON a.assigned_to = au.id
       LEFT JOIN LATERAL (
-          SELECT AVG(COALESCE(p.progress_percentage, 0)) as total_progress
-          FROM (
-              SELECT user_id FROM team_members WHERE team_id = a.team_id
-              UNION
-              SELECT a.assigned_to
-          ) assigned_users
-          LEFT JOIN LATERAL (
-              SELECT progress_percentage 
-              FROM activity_progress 
-              WHERE activity_id = a.id AND user_id = assigned_users.user_id
-              ORDER BY created_at DESC 
-              LIMIT 1
-          ) p ON true
-          WHERE assigned_users.user_id IS NOT NULL
+          SELECT COALESCE(SUM(ts.progress_percentage * ts.weight) / 100.0, 0) as total_progress
+          FROM tasks ts
+          WHERE ts.activity_id = a.id
       ) calc ON true
     `;
     const params = [];
 
     if (req.user.role === 'pegawai') {
-      query += ' WHERE (a.assigned_to = ? OR a.team_id IN (SELECT team_id FROM team_members WHERE user_id = ?))';
-      params.push(req.user.id, req.user.id);
-    } else if (req.user.role === 'ketua_tim') {
-      query += ' WHERE (a.created_by = ? OR a.team_id IN (SELECT id FROM teams WHERE leader_id = ?))';
-      params.push(req.user.id, req.user.id);
+      query += ` WHERE (
+        a.assigned_to = ? OR 
+        a.created_by = ? OR 
+        a.team_id IN (SELECT id FROM teams WHERE leader_id = ?) OR 
+        a.team_id IN (SELECT team_id FROM team_members WHERE user_id = ?)
+      )`;
+      params.push(req.user.id, req.user.id, req.user.id, req.user.id);
     }
 
     query += ' ORDER BY a.deadline ASC';
@@ -61,18 +53,35 @@ const getActivities = async (req, res) => {
 // POST /api/activities
 const createActivity = async (req, res) => {
   try {
-    const { title, description, deadline, team_id, assigned_to } = req.body;
+    const { title, description, start_date, deadline, team_id, assigned_to } = req.body;
     const created_by = req.user.id;
 
     const final_team_id = team_id || null;
     const final_assigned_to = assigned_to || null;
+    const final_start_date = start_date || null;
 
     const [result] = await db.query(
-      'INSERT INTO activities (title, description, deadline, created_by, team_id, assigned_to) VALUES (?, ?, ?, ?, ?, ?)',
-      [title, description, deadline, created_by, final_team_id, final_assigned_to]
+      'INSERT INTO activities (title, description, start_date, deadline, created_by, team_id, assigned_to) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [title, description, final_start_date, deadline, created_by, final_team_id, final_assigned_to]
     );
 
-    res.status(201).json({ message: 'Kegiatan berhasil dibuat', id: result.insertId });
+    const activity_id = result?.insertId;
+
+    // Send notifications to all team members if a team is assigned
+    if (final_team_id && activity_id) {
+      const [members] = await db.query(
+        'SELECT user_id FROM team_members WHERE team_id = ?',
+        [final_team_id]
+      );
+      for (const member of members) {
+        await db.query(
+          'INSERT INTO notifications (user_id, message) VALUES (?, ?)',
+          [member.user_id, `Kegiatan baru telah dibuat dalam tim Anda: "${title}"`]
+        );
+      }
+    }
+
+    res.status(201).json({ message: 'Kegiatan berhasil dibuat', id: activity_id });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
@@ -82,13 +91,13 @@ const createActivity = async (req, res) => {
 const updateActivity = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, deadline, status, assigned_to, team_id } = req.body;
+    const { title, description, start_date, deadline, status, assigned_to, team_id } = req.body;
 
     // Check permission
     const [act] = await db.query('SELECT team_id, created_by FROM activities WHERE id = ?', [id]);
     if (!act.length) return res.status(404).json({ message: 'Kegiatan tidak ditemukan' });
 
-    if (req.user.role === 'ketua_tim') {
+    if (req.user.role === 'pegawai' && req.user.is_leader) {
       const [team] = await db.query('SELECT leader_id FROM teams WHERE id = ?', [act[0].team_id]);
       if (parseInt(act[0].created_by) !== parseInt(req.user.id) && (!team.length || parseInt(team[0].leader_id) !== parseInt(req.user.id))) {
         return res.status(403).json({ message: 'Akses ditolak. Anda bukan pemilik atau ketua tim untuk kegiatan ini.' });
@@ -99,10 +108,11 @@ const updateActivity = async (req, res) => {
 
     const final_team_id = team_id || null;
     const final_assigned_to = assigned_to || null;
+    const final_start_date = start_date || null;
 
     await db.query(
-      'UPDATE activities SET title=?, description=?, deadline=?, status=?, assigned_to=?, team_id=? WHERE id=?',
-      [title, description, deadline, status, final_assigned_to, final_team_id, id]
+      'UPDATE activities SET title=?, description=?, start_date=?, deadline=?, status=?, assigned_to=?, team_id=? WHERE id=?',
+      [title, description, final_start_date, deadline, status, final_assigned_to, final_team_id, id]
     );
 
     res.json({ message: 'Kegiatan berhasil diperbarui' });
@@ -120,7 +130,7 @@ const deleteActivity = async (req, res) => {
     const [act] = await db.query('SELECT team_id, created_by FROM activities WHERE id = ?', [id]);
     if (!act.length) return res.status(404).json({ message: 'Kegiatan tidak ditemukan' });
 
-    if (req.user.role === 'ketua_tim') {
+    if (req.user.role === 'pegawai' && req.user.is_leader) {
       const [team] = await db.query('SELECT leader_id FROM teams WHERE id = ?', [act[0].team_id]);
       if (parseInt(act[0].created_by) !== parseInt(req.user.id) && (!team.length || parseInt(team[0].leader_id) !== parseInt(req.user.id))) {
         return res.status(403).json({ message: 'Akses ditolak.' });
@@ -145,7 +155,7 @@ const getActivityMonitoring = async (req, res) => {
     const [act] = await db.query('SELECT team_id, created_by FROM activities WHERE id = ?', [id]);
     if (!act.length) return res.status(404).json({ message: 'Kegiatan tidak ditemukan' });
 
-    if (req.user.role === 'ketua_tim') {
+    if (req.user.role === 'pegawai' && req.user.is_leader) {
       const [team] = await db.query('SELECT leader_id FROM teams WHERE id = ?', [act[0].team_id]);
       if (act[0].created_by !== req.user.id && (!team.length || team[0].leader_id !== req.user.id)) {
         return res.status(403).json({ message: 'Akses ditolak. Anda bukan ketua tim untuk kegiatan ini.' });
