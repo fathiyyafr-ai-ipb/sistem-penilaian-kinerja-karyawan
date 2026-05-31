@@ -228,7 +228,6 @@ export default function PenilaianPresensi() {
           <div key={i} className={`bg-gradient-to-br ${c.color} rounded-2xl p-5 text-white shadow-md relative overflow-hidden`}>
             <p className="text-sm font-medium opacity-80 text-white">{c.label}</p>
             <p className="text-3xl font-black mt-1">{c.val}</p>
-            <c.icon className="absolute right-4 bottom-4 w-10 h-10 opacity-15 text-white" />
           </div>
         ))}
       </div>

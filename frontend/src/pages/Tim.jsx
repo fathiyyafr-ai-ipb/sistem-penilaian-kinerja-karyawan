@@ -164,11 +164,6 @@ export default function Tim() {
           <h2 className="text-2xl font-extrabold text-gray-800">
             {canManageTeam ? 'Manajemen Tim Kerja' : 'Daftar Tim Saya'}
           </h2>
-          <p className="text-sm text-gray-500 mt-1">
-            {canManageTeam 
-              ? 'Kelola struktur tim kerja, ketua tim pelaksana, dan delegasi keanggotaan staf BPS.' 
-              : 'Daftar kelompok tim kerja aktif di mana Anda terlibat sebagai anggota atau ketua.'}
-          </p>
         </div>
         
         {canManageTeam && (

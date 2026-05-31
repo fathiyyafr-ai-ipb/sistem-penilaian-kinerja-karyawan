@@ -9,15 +9,17 @@ const getEmployeeOfMonth = async (req, res) => {
   try {
     const { period } = req.query;
     let query = `
-      SELECT eom.*, u.name, u.jabatan, u.unit_kerja, u.nip, u.pangkat,
+      SELECT fa.id, fa.employee_id AS user_id, fa.final_score AS total_score, fa.period,
+             u.name, u.jabatan, u.unit_kerja, u.nip, u.pangkat,
              vb.name AS validated_by_name
-      FROM employee_of_month eom
-      JOIN  users u  ON eom.user_id     = u.id
-      LEFT JOIN users vb ON eom.validated_by = vb.id
+      FROM final_assessments fa
+      JOIN users u ON fa.employee_id = u.id
+      LEFT JOIN users vb ON fa.validated_by = vb.id
+      WHERE fa.status = 'published'
     `;
     const params = [];
-    if (period) { query += ' WHERE eom.period = ?'; params.push(period); }
-    query += ' ORDER BY eom.total_score DESC';
+    if (period) { query += ' AND fa.period = ?'; params.push(period); }
+    query += ' ORDER BY fa.final_score DESC, fa.perilaku_score DESC, fa.kinerja_score DESC';
     const [rows] = await db.query(query, params);
     res.json(rows);
   } catch (err) {

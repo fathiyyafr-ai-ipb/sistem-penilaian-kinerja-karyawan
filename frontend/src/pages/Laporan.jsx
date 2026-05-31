@@ -91,7 +91,6 @@ export default function Laporan() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-extrabold text-gray-800">Laporan Kinerja</h2>
-          <p className="text-sm text-gray-500 mt-0.5">Rekap seluruh data penilaian kinerja pegawai</p>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-sm text-gray-500 font-medium">Periode</span>

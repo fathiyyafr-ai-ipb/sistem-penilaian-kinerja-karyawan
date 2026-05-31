@@ -234,7 +234,7 @@ export default function Home() {
 
           {/* Employee of Month */}
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-150">
-            <h3 className="font-semibold text-gray-700 mb-3 text-sm">🏆 Employee of the Month</h3>
+            <h3 className="font-semibold text-gray-700 mb-3 text-sm">Employee of the Month</h3>
             <div className="flex flex-col items-center">
               <div className="relative">
                 <div className={`w-14 h-14 rounded-full flex items-center justify-center font-bold text-lg ${

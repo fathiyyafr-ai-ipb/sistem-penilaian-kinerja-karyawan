@@ -46,12 +46,12 @@ export default function EmployeeOfMonth() {
 
   const loadEom = async () => {
     try {
-      const res = await api.get(`/assessments/top-3?period=${period}`);
+      const res = await api.get(`/employee-of-month?period=${period}`);
       setEomList(res.data.map(item => ({
         id: item.id,
-        name: item.employee_name,
+        name: item.name,
         jabatan: item.jabatan || 'Staf Pelaksana',
-        total_score: item.final_score ? parseFloat(item.final_score).toFixed(2) : '0.00',
+        total_score: item.total_score ? parseFloat(item.total_score).toFixed(2) : '0.00',
         period: item.period
       })));
     } catch (err) {
@@ -88,11 +88,8 @@ export default function EmployeeOfMonth() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-extrabold text-gray-800 flex items-center gap-2">
-            <Trophy className="w-7 h-7 text-yellow-500" /> Employee of the Month
+            Employee of the Month
           </h2>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Pegawai terbaik periode kuartalan berdasarkan penilaian kinerja, perilaku, dan presensi.
-          </p>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative">
@@ -112,7 +109,6 @@ export default function EmployeeOfMonth() {
       {top3.length > 0 && (
         <div className="bg-gradient-to-br from-yellow-50 via-amber-50 to-orange-50 border border-yellow-200 rounded-2xl p-6">
           <div className="flex items-center gap-2 mb-6">
-            <Trophy className="w-5 h-5 text-yellow-500" />
             <h3 className="font-bold text-gray-800">Podium Penghargaan — Kuartal {period.split('-Q')[1]} ({period})</h3>
           </div>
 
@@ -183,7 +179,6 @@ export default function EmployeeOfMonth() {
 
       {top3.length === 0 && (
         <div className="bg-white rounded-2xl p-16 text-center border border-gray-100 shadow-sm">
-          <Trophy className="w-16 h-16 text-gray-200 mx-auto mb-4" />
           <p className="text-gray-400 font-medium">Belum ada Employee of the Month yang dirilis pada periode ini</p>
         </div>
       )}

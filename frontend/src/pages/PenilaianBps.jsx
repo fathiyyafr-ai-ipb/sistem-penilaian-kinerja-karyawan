@@ -226,17 +226,14 @@ export default function PenilaianBps() {
         <div className="bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl p-5 text-white shadow-md relative overflow-hidden">
           <p className="text-sm font-medium opacity-80 text-white">Total Staf Dinilai</p>
           <p className="text-3xl font-black mt-1">{totalCount}</p>
-          <Users className="absolute right-4 bottom-4 w-10 h-10 opacity-15 text-white" />
         </div>
         <div className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl p-5 text-white shadow-md relative overflow-hidden">
           <p className="text-sm font-medium opacity-80 text-white">Siap Validasi (Komplit)</p>
           <p className="text-3xl font-black mt-1">{readyCount} <span className="text-xs font-normal opacity-85">Pegawai</span></p>
-          <Sparkles className="absolute right-4 bottom-4 w-10 h-10 opacity-15 text-white" />
         </div>
         <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-5 text-white shadow-md relative overflow-hidden">
           <p className="text-sm font-medium opacity-80 text-white">Tervalidasi / Published</p>
           <p className="text-3xl font-black mt-1">{validatedCount + publishedCount} <span className="text-xs font-normal opacity-85">/ {totalCount} Pegawai</span></p>
-          <CheckCircle className="absolute right-4 bottom-4 w-10 h-10 opacity-15 text-white" />
         </div>
         <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
           <p className="text-sm font-bold text-gray-500">Progress Kelengkapan Data</p>

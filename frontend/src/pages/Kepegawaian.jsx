@@ -62,7 +62,7 @@ export default function Kepegawaian() {
     <div className="bg-white rounded-xl p-6 shadow-sm">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <h2 className="text-xl font-bold text-gray-800">Daftar Pegawai</h2>
+          <h2 className="text-2xl font-bold text-gray-800">Daftar Pegawai</h2>
         </div>
         {isAdmin && (
           <button onClick={() => { setShowModal(true); setForm(emptyForm); setEditId(null); }}

@@ -356,8 +356,7 @@ export default function Kegiatan() {
       {/* Header & Create Button */}
       <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
         <div>
-          <h2 className="text-xl font-extrabold text-gray-800">Daftar Kegiatan</h2>
-          <p className="text-xs text-gray-400 mt-0.5">Kelola dan pantau seluruh progres kegiatan taktis BPS Solok.</p>
+          <h2 className="text-2xl font-extrabold text-gray-800">Daftar Kegiatan</h2>
         </div>
         {canCreateActivity && (
           <button onClick={() => { setShowModal(true); setEditingId(null); setForm({ title: '', description: '', start_date: '', deadline: '', team_id: '', assigned_to: '' }); }}
