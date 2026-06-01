@@ -1,10 +1,9 @@
 # Sistem Penilaian Kinerja Karyawan (Badan Pusat Statistik Kabupaten Solok)
 
 ## Anggota Kelompok
-1. [Nama Anggota 1] - [NIM/ID]
-2. [Nama Anggota 2] - [NIM/ID]
-3. [Nama Anggota 3] - [NIM/ID]
-*(Silakan isi dengan nama anggota kelompok Anda)*
+1. Fathiyya Fitriani Refananda - M0405241013
+2. Jonathan Seth Saloh - M040524014
+3. Siti Khodijah Nailah - M0405241015
 
 ## Tentang Sistem
 Sistem Penilaian Kinerja Karyawan ini adalah aplikasi berbasis web yang dirancang khusus untuk **Badan Pusat Statistik (BPS) Kabupaten Solok**. 
