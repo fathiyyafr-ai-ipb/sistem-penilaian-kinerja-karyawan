@@ -167,9 +167,7 @@ export default function Penilaian() {
         <div>
           <h2 className="text-2xl font-extrabold text-gray-800">Modul Penilaian Kinerja</h2>
           <p className="text-sm text-gray-500 mt-1">
-            {isAdmin 
-              ? 'Kelola bobot kriteria penilaian dinamis atau lihat visualisasi laporan nilai pegawai.' 
-              : 'Hasil pengesahan evaluasi kuartal, visualisasi breakdown nilai, dan dashboard Best Employee BPS.'}
+            {isAdmin && 'Kelola bobot kriteria penilaian dinamis atau lihat visualisasi laporan nilai pegawai.'}
           </p>
         </div>
         
@@ -326,21 +324,15 @@ export default function Penilaian() {
               <div className="space-y-6">
                 {/* ── CIRCULAR CARD / HIGHLIGHT CARD ── */}
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden grid grid-cols-1 md:grid-cols-12">
-                  {/* Left part: Circular final score */}
-                  <div className="md:col-span-5 bg-gradient-to-br from-blue-700 via-blue-800 to-indigo-850 text-white p-8 flex flex-col items-center justify-center text-center relative">
-                    <p className="text-xs font-bold uppercase tracking-widest text-blue-100">Nilai Akhir Terbobot</p>
+                  {/* Left part: Simple final score */}
+                  <div className="md:col-span-5 bg-blue-50 border-r border-blue-100 p-8 flex flex-col items-center justify-center text-center">
+                    <p className="text-sm font-bold uppercase tracking-wide text-gray-500">Nilai Akhir Terbobot</p>
                     
-                    {/* Ring score */}
-                    <div className="relative w-36 h-36 flex items-center justify-center mt-5 mb-4">
-                      {/* Inner circle */}
-                      <div className="absolute w-28 h-28 bg-white/10 backdrop-blur-md rounded-full flex flex-col items-center justify-center border border-white/20">
-                        <span className="text-3xl font-black font-sans leading-none">{parseFloat(scoreSummary.final_score).toFixed(2)}</span>
-                      </div>
-                      {/* Outer visual glow border */}
-                      <div className="w-full h-full rounded-full border-4 border-dashed border-white/30 animate-[spin_40s_linear_infinite]" />
+                    <div className="mt-4 mb-4">
+                      <span className="text-6xl font-black text-blue-700">{parseFloat(scoreSummary.final_score).toFixed(2)}</span>
                     </div>
 
-                    <span className={`text-xs font-black px-4 py-1.5 rounded-full border shadow-sm ${predicateInfo?.color}`}>
+                    <span className={`text-xs font-bold px-4 py-1.5 rounded-full border ${predicateInfo?.color}`}>
                       {predicateInfo?.label}
                     </span>
                   </div>
@@ -386,7 +378,6 @@ export default function Penilaian() {
                   {/* Detailed Kegiatan (Kinerja) */}
                   <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                     <div className="bg-gray-50 px-5 py-4 border-b border-gray-100 flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4 text-blue-600" />
                       <h4 className="font-extrabold text-gray-700 text-sm">Rincian Nilai Kinerja per Kegiatan</h4>
                     </div>
                     <div className="p-5">
@@ -434,7 +425,6 @@ export default function Penilaian() {
                   {/* Detailed Behavior (Perilaku) */}
                   <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                     <div className="bg-gray-50 px-5 py-4 border-b border-gray-100 flex items-center gap-2">
-                      <Heart className="w-4 h-4 text-indigo-600" />
                       <h4 className="font-extrabold text-gray-700 text-sm">Rincian 8 Aspek Perilaku Ber-AKHLAK</h4>
                     </div>
                     <div className="p-5 space-y-4">

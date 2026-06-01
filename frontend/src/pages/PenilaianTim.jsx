@@ -308,7 +308,7 @@ export default function PenilaianTim() {
           <p className="text-sm font-medium opacity-80 text-white">Total Anggota Tim</p>
           <p className="text-3xl font-black mt-1">{totalEmployees}</p>
         </div>
-        <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl p-5 text-white shadow-md">
+        <div className="bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl p-5 text-white shadow-md">
           <p className="text-sm font-medium opacity-80 text-white">Evaluasi Perilaku Submitted</p>
           <p className="text-3xl font-black mt-1">{submittedBehaviors} <span className="text-sm font-normal opacity-85">/ {totalEmployees} Pegawai</span></p>
         </div>

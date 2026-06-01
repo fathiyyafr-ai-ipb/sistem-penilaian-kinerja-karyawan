@@ -173,12 +173,9 @@ export default function PenilaianBps() {
       {/* ── HEADER & FINALISASI ── */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
         <div>
-          <h2 className="text-2xl font-extrabold text-gray-800 font-sans flex items-center gap-2">
+          <h2 className="text-2xl font-extrabold text-gray-800">
             Validasi Pimpinan (Kepala BPS)
           </h2>
-          <p className="text-sm text-gray-500 mt-1">
-            Verifikasi keselarasan 3 komponen penilaian pegawai dan publikasikan secara resmi ke seluruh staf BPS.
-          </p>
         </div>
         
         <div className="flex flex-wrap items-center gap-3">

@@ -918,13 +918,6 @@ const getAssessmentReportDetail = async (req, res) => {
     );
     const attendance_evaluation = attendanceEvaluationRows[0] || null;
 
-    // Fetch raw attendance metrics for this period
-    const [attendanceDetailsRows] = await db.query(
-      'SELECT * FROM attendance WHERE user_id = ? AND periode = ?',
-      [employee_id, period]
-    );
-    const attendance_detail = attendanceDetailsRows[0] || null;
-
     res.json({
       employee: {
         ...employee,
@@ -935,10 +928,7 @@ const getAssessmentReportDetail = async (req, res) => {
       final_assessment,
       activities: activitiesWithRealization,
       behavior,
-      attendance: {
-        evaluation: attendance_evaluation,
-        detail: attendance_detail
-      }
+      attendance: attendance_evaluation
     });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
