@@ -209,7 +209,6 @@ erDiagram
 ```
 
 ## Tampilan Fitur-fitur
-*(Silakan ganti `[MASUKKAN_LINK_GAMBAR]` dengan path atau URL screenshot Anda)*
 
 ### 1. Login
 Sistem otentikasi pengguna berdasarkan Role (Admin, Pegawai, Ketua Tim, Kasubag, Kepala BPS).
