@@ -212,36 +212,34 @@ erDiagram
 
 ### 1. Login
 Sistem otentikasi pengguna berdasarkan Role (Admin, Pegawai, Ketua Tim, Kasubag, Kepala BPS).
-![Tampilan Login]([MASUKKAN_LINK_GAMBAR])
+![Tampilan Login]
 
 ### 2. Dashboard / Beranda
 Halaman utama yang menampilkan ringkasan performa dan notifikasi sistem.
-![Tampilan Dashboard]([MASUKKAN_LINK_GAMBAR])
-
+![Tampilan Dashboard]
 ### 3. Manajemen Kepegawaian (Admin)
 Halaman bagi admin untuk mengelola master data pegawai, penugasan peran, dan unit kerja.
-![Tampilan Manajemen Pegawai]([MASUKKAN_LINK_GAMBAR])
+![Tampilan Manajemen Pegawai]
 
 ### 4. Manajemen Tim Kerja
 Fasilitas pembentukan tim (Inti/Ad-hoc) dan pengaturan ketua tim beserta anggotanya.
-![Tampilan Manajemen Tim]([MASUKKAN_LINK_GAMBAR])
+![Tampilan Manajemen Tim]
 
 ### 5. Manajemen Kegiatan & Logbook
 Manajemen tugas harian dan target kuartal serta pelaporan logbook kegiatan oleh pegawai secara *real-time*.
-![Tampilan Kegiatan & Logbook]([MASUKKAN_LINK_GAMBAR])
+![Tampilan Kegiatan & Logbook]
 
 ### 6. Evaluasi & Penilaian
 Halaman pengisian evaluasi kinerja kegiatan (Ketua Tim), perilaku Ber-AKHLAK (Ketua Tim), dan nilai kehadiran (Kasubag).
-![Tampilan Penilaian Tim]([MASUKKAN_LINK_GAMBAR])
+![Tampilan Penilaian Tim]
 
 ### 7. Validasi Pimpinan (Kepala BPS)
 Halaman finalisasi nilai dengan kalkulasi bobot otomatis serta form pemberian *feedback* tertulis dari Kepala BPS.
-![Tampilan Validasi Pimpinan]([MASUKKAN_LINK_GAMBAR])
+![Tampilan Validasi Pimpinan]
 
 ### 8. Laporan & Peringkat (Employee of the Month)
 Halaman visualisasi skor akhir pegawai dan panggung penganugerahan untuk *Best Employees* di setiap periode.
-![Tampilan Laporan / Employee of the Month]([MASUKKAN_LINK_GAMBAR])
-
+![Tampilan Laporan / Employee of the Month]
 
 ## Requirements
 Sebelum menginisiasi proyek ini, pastikan sistem Anda telah terinstal:
