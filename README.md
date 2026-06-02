@@ -19,227 +19,52 @@ Sistem ini dibuat untuk memfasilitasi proses pemantauan tugas, logbook harian, s
 
 ## Class Diagram (Entity Relationship Diagram)
 Berikut adalah struktur skema database PostgreSQL yang digunakan di dalam sistem ini:
-
-```mermaid
-erDiagram
-    users {
-        int id PK
-        varchar name
-        varchar nip
-        varchar email
-        varchar password
-        varchar role
-        varchar pangkat
-        varchar jabatan
-        varchar unit_kerja
-        timestamp created_at
-    }
-
-    teams {
-        int id PK
-        varchar team_name
-        int leader_id FK "users(id)"
-        varchar type
-        boolean is_active
-        timestamp created_at
-    }
-
-    team_members {
-        int id PK
-        int team_id FK "teams(id)"
-        int user_id FK "users(id)"
-    }
-
-    activities {
-        int id PK
-        varchar title
-        text description
-        date start_date
-        date deadline
-        int created_by FK "users(id)"
-        int team_id FK "teams(id)"
-        int assigned_to FK "users(id)"
-        varchar status
-        timestamp created_at
-    }
-
-    tasks {
-        int id PK
-        int activity_id FK "activities(id)"
-        varchar title
-        int assigned_to FK "users(id)"
-        int weight
-        int progress_percentage
-        varchar status
-        timestamp created_at
-    }
-
-    task_logbooks {
-        int id PK
-        int task_id FK "tasks(id)"
-        int user_id FK "users(id)"
-        int progress_percentage
-        text notes
-        varchar file_report
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    activity_progress {
-        int id PK
-        int activity_id FK "activities(id)"
-        int user_id FK "users(id)"
-        int progress_percentage
-        text notes
-        varchar file_report
-        timestamp created_at
-    }
-
-    assessment_weights {
-        int id PK
-        int kinerja_weight
-        int perilaku_weight
-        int presensi_weight
-        boolean active
-    }
-
-    activity_evaluations {
-        int id PK
-        int employee_id FK "users(id)"
-        int activity_id FK "activities(id)"
-        int reviewer_id FK "users(id)"
-        varchar period
-        decimal speed_score
-        decimal quality_score
-        decimal contribution_score
-        decimal responsibility_score
-        text notes
-        varchar status
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    behavior_evaluations {
-        int id PK
-        int employee_id FK "users(id)"
-        int reviewer_id FK "users(id)"
-        varchar period
-        decimal orientasi_pelayanan
-        decimal akuntabilitas
-        decimal kompetensi
-        decimal harmonis
-        decimal loyal
-        decimal adaptif
-        decimal kolaboratif
-        decimal disiplin
-        text notes
-        varchar status
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    attendance_evaluations {
-        int id PK
-        int employee_id FK "users(id)"
-        int reviewer_id FK "users(id)"
-        varchar period
-        decimal attendance_score
-        text notes
-        varchar status
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    final_assessments {
-        int id PK
-        int employee_id FK "users(id)"
-        varchar period
-        decimal kinerja_score
-        decimal perilaku_score
-        decimal presensi_score
-        decimal final_score
-        int validated_by FK "users(id)"
-        timestamp validated_at
-        text notes
-        varchar status
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    notifications {
-        int id PK
-        int user_id FK "users(id)"
-        text message
-        boolean is_read
-        timestamp created_at
-    }
-
-    %% Relationships
-    users ||--o{ teams : "memimpin"
-    users ||--o{ team_members : "tergabung dalam"
-    teams ||--o{ team_members : "berisi"
-    
-    users ||--o{ activities : "membuat"
-    users ||--o{ activities : "ditugaskan ke"
-    teams ||--o{ activities : "memiliki kegiatan"
-    
-    activities ||--o{ activity_progress : "mencatat progress"
-    users ||--o{ activity_progress : "melaporkan"
-    
-    activities ||--o{ tasks : "dibagi menjadi"
-    users ||--o{ tasks : "ditugaskan ke"
-    
-    tasks ||--o{ task_logbooks : "memiliki log harian"
-    users ||--o{ task_logbooks : "dicatat oleh"
-    
-    users ||--o{ activity_evaluations : "dievaluasi kinerjanya"
-    users ||--o{ activity_evaluations : "dinilai oleh"
-    activities ||--o{ activity_evaluations : "menjadi dasar evaluasi"
-    
-    users ||--o{ behavior_evaluations : "dievaluasi perilakunya"
-    users ||--o{ behavior_evaluations : "dinilai oleh"
-    
-    users ||--o{ attendance_evaluations : "dievaluasi presensinya"
-    users ||--o{ attendance_evaluations : "dinilai oleh"
-    
-    users ||--o{ final_assessments : "mendapatkan hasil akhir"
-    users ||--o{ final_assessments : "divalidasi oleh"
-    
-    users ||--o{ notifications : "menerima notifikasi"
-```
+<img width="916" height="938" alt="image" src="https://github.com/user-attachments/assets/65fda2cc-226f-4345-9a80-1cf4d93e0281" />
 
 ## Tampilan Fitur-fitur
 
 ### 1. Login
 Sistem otentikasi pengguna berdasarkan Role (Admin, Pegawai, Ketua Tim, Kasubag, Kepala BPS).
-![Tampilan Login]
+![Tampilan Login] 
+<img width="2399" height="1398" alt="image" src="https://github.com/user-attachments/assets/ab97e56d-6b7f-44c2-847e-5ac2310601c6" />
 
 ### 2. Dashboard / Beranda
 Halaman utama yang menampilkan ringkasan performa dan notifikasi sistem.
-![Tampilan Dashboard]
+![Tampilan Dashboard] 
+<img width="2010" height="1172" alt="image" src="https://github.com/user-attachments/assets/5f9db19e-bacd-4371-947b-003c93605b75" />
+
 ### 3. Manajemen Kepegawaian (Admin)
 Halaman bagi admin untuk mengelola master data pegawai, penugasan peran, dan unit kerja.
-![Tampilan Manajemen Pegawai]
+![Tampilan Manajemen Pegawai] 
+<img width="2380" height="1400" alt="image" src="https://github.com/user-attachments/assets/0f7ff735-95ed-4dd4-9707-0c6914680547" />
 
 ### 4. Manajemen Tim Kerja
 Fasilitas pembentukan tim (Inti/Ad-hoc) dan pengaturan ketua tim beserta anggotanya.
-![Tampilan Manajemen Tim]
+![Tampilan Manajemen Tim] 
+<img width="2399" height="1396" alt="image" src="https://github.com/user-attachments/assets/4f81547f-73c0-49b4-9a9e-ff9f0f3c6b65" />
 
 ### 5. Manajemen Kegiatan & Logbook
-Manajemen tugas harian dan target kuartal serta pelaporan logbook kegiatan oleh pegawai secara *real-time*.
+Manajemen tugas dan target kuartal oleh ketua tim serta pelaporan logbook kegiatan oleh pegawai secara *real-time*.
 ![Tampilan Kegiatan & Logbook]
+<img width="2380" height="1395" alt="image" src="https://github.com/user-attachments/assets/00280cf5-a26a-4991-bd54-341340e842bc" />
+<img width="2398" height="1394" alt="image" src="https://github.com/user-attachments/assets/7aec620d-d501-4ad4-b3f1-2d2f72b3d76b" />
 
-### 6. Evaluasi & Penilaian
-Halaman pengisian evaluasi kinerja kegiatan (Ketua Tim), perilaku Ber-AKHLAK (Ketua Tim), dan nilai kehadiran (Kasubag).
+### 6. Penilaian
+Halaman pengisian nilai kinerja kegiatan (Ketua Tim), nilai perilaku Ber-AKHLAK (Ketua Tim), dan nilai kehadiran (Kasubag).
 ![Tampilan Penilaian Tim]
+<img width="2379" height="1397" alt="image" src="https://github.com/user-attachments/assets/fa268f53-e64b-4f62-98e2-2cf164c19bb5" />
+<img width="2382" height="1397" alt="image" src="https://github.com/user-attachments/assets/33a79c10-b400-422e-a6e3-c43a1e3ae6cb" />
 
 ### 7. Validasi Pimpinan (Kepala BPS)
 Halaman finalisasi nilai dengan kalkulasi bobot otomatis serta form pemberian *feedback* tertulis dari Kepala BPS.
 ![Tampilan Validasi Pimpinan]
+<img width="2380" height="1394" alt="image" src="https://github.com/user-attachments/assets/26cd1eaa-69e1-49d1-89ad-be60d30fc4f6" />
 
 ### 8. Laporan & Peringkat (Employee of the Month)
 Halaman visualisasi skor akhir pegawai dan panggung penganugerahan untuk *Best Employees* di setiap periode.
-![Tampilan Laporan / Employee of the Month]
+![Tampilan Laporan dan Employee of the Month]
+<img width="2375" height="1396" alt="image" src="https://github.com/user-attachments/assets/ee5d5b33-3723-4d65-a0c7-919e7986ad45" />
+<img width="2378" height="1395" alt="image" src="https://github.com/user-attachments/assets/ce49bca2-14fb-4090-82c6-40a58dd9e9e6" />
 
 ## Requirements
 Sebelum menginisiasi proyek ini, pastikan sistem Anda telah terinstal:
