@@ -195,9 +195,9 @@ INSERT INTO assessment_weights (kinerja_weight, perilaku_weight, presensi_weight
 
 -- 1. Evaluasi Kinerja (Rata-rata kegiatan)
 INSERT INTO activity_evaluations (employee_id, activity_id, reviewer_id, period, speed_score, quality_score, contribution_score, responsibility_score, notes, status) VALUES
--- Budi Santoso & Rina Wati (DRAFT - Belum selesai penilaiannya)
+-- Budi Santoso (DRAFT) & Rina Wati (SUBMITTED)
 (2, 10, 3, '2026-Q1', 88.00, 90.00, 85.00, 92.00, 'Sangat berdedikasi tinggi dalam penyusunan Publikasi Kecamatan Q1', 'draft'),
-(6, 11, 3, '2026-Q1', 92.00, 88.00, 90.00, 88.00, 'Pekerjaan KSA selesai tepat waktu dan presisi', 'draft'),
+(6, 11, 3, '2026-Q1', 92.00, 88.00, 90.00, 88.00, 'Pekerjaan KSA selesai tepat waktu dan presisi', 'submitted'),
 
 -- Joko Susilo (SUBMITTED)
 (7, 12, 3, '2026-Q1', 85.00, 85.00, 90.00, 85.00, 'Listing RT berjalan baik dan teratur', 'submitted'),
@@ -234,9 +234,9 @@ INSERT INTO activity_evaluations (employee_id, activity_id, reviewer_id, period,
 
 -- 2. Evaluasi Perilaku ASN (Ber-AKHLAK + Disiplin)
 INSERT INTO behavior_evaluations (employee_id, reviewer_id, period, orientasi_pelayanan, akuntabilitas, kompetensi, harmonis, loyal, adaptif, kolaboratif, disiplin, notes, status) VALUES
--- Budi Santoso & Rina Wati (DRAFT)
+-- Budi Santoso (DRAFT) & Rina Wati (SUBMITTED)
 (2, 3, '2026-Q1', 85, 90, 85, 88, 90, 85, 90, 88, 'Perilaku kerja sangat sopan, profesional, loyal, dan berintegritas.', 'draft'),
-(6, 3, '2026-Q1', 90, 88, 90, 85, 90, 88, 92, 90, 'Memiliki kerjasama tim yang luar biasa dan inisiatif tinggi.', 'draft'),
+(6, 3, '2026-Q1', 90, 88, 90, 85, 90, 88, 92, 90, 'Memiliki kerjasama tim yang luar biasa dan inisiatif tinggi.', 'submitted'),
 
 -- Joko Susilo (SUBMITTED)
 (7, 3, '2026-Q1', 88, 85, 88, 90, 85, 85, 88, 85, 'Sangat ramah, komunikatif, dan membantu kelancaran survei.', 'submitted'),
